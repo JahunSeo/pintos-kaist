@@ -6,4 +6,4 @@ OS 2조 화이팅!!
 
 - 서자헌: JahunSeo, wkgjs0809@gmail.com
 - 김진영: JinYoung, kjy112934@naver.com
-- 홍수빈:
+- 홍수빈: SubinHong, ltjg.hong@gmail.com
