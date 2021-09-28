@@ -167,6 +167,8 @@ list_insert (struct list_elem *before, struct list_elem *elem) {
 /* Removes elements FIRST though LAST (exclusive) from their
    current list, then inserts them just before BEFORE, which may
    be either an interior element or a tail. */
+// 특정 서브 리스트를 before element의 prev로 이동시킴
+// - 이 함수는 가령, ready_list에서 우선순위를 조정할 때 활용될 것으로 보임
 void
 list_splice (struct list_elem *before,
 		struct list_elem *first, struct list_elem *last) {

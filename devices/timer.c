@@ -100,7 +100,7 @@ timer_sleep (int64_t ticks) {
 
 	ASSERT (intr_get_level () == INTR_ON); // 현재 interrupt이 enabled인 상태인지 확인
 	while (timer_elapsed (start) < ticks)
-		printf("- ticks: %d\n", ticks);
+		printf("- ticks: curr %d - start %d < ticks %d\n", timer_ticks(), start, ticks);
 		thread_yield ();
 }
 
