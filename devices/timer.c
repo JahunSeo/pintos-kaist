@@ -73,8 +73,12 @@ timer_calibrate (void) {
 /* Returns the number of timer ticks since the OS booted. */
 int64_t
 timer_ticks (void) {
+	 // interrupt를 disable 처리한 후, 이전의 상태를 old_level에 저장
+	 // - t에 ticks를 저장할 때, ticks 값이 변동되는 것을 막기 위함으로 보임	
 	enum intr_level old_level = intr_disable ();
-	int64_t t = ticks;
+	// OS가 boot된 이후부터의 timer ticks
+	int64_t t = ticks; 
+	// interrupt를 old_level에 저장된 상태로 되돌림 (이전 상태는 disabled 혹은 enabled)
 	intr_set_level (old_level);
 	barrier ();
 	return t;
@@ -90,10 +94,13 @@ timer_elapsed (int64_t then) {
 /* Suspends execution for approximately TICKS timer ticks. */
 void
 timer_sleep (int64_t ticks) {
+	printf("[timer_sleep]\n");
 	int64_t start = timer_ticks ();
+	printf("- start: %d, %d\n", start, intr_get_level ());	
 
-	ASSERT (intr_get_level () == INTR_ON);
+	ASSERT (intr_get_level () == INTR_ON); // 현재 interrupt이 enabled인 상태인지 확인
 	while (timer_elapsed (start) < ticks)
+		printf("- ticks: %d\n", ticks);
 		thread_yield ();
 }
 
