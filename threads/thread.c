@@ -179,6 +179,8 @@ thread_print_stats (void) {
 tid_t
 thread_create (const char *name, int priority,
 		thread_func *function, void *aux) {
+	// function: thread가 생성된 뒤 그 thread의 context에서 수행할 업무(thread routine)
+	// aux: function에 넘길 인자
 	struct thread *t;
 	tid_t tid;
 
