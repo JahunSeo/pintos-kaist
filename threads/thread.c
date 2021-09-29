@@ -28,6 +28,11 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+/* List of process in THREAD_BLOCK state */
+static struct list sleep_list;
+// sleep_list에서 awake되는 시점이 가장 빠른 thread의 awake_ticks 시점
+static int64_t next_tick_to_awake; 
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -109,6 +114,7 @@ thread_init (void) {
 	lock_init (&tid_lock);
 	list_init (&ready_list);
 	list_init (&destruction_req);
+	list_init (&sleep_list);
 
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread ();
