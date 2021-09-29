@@ -27,8 +27,12 @@
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 static struct list ready_list;
-static struct list sleep_list;      /* sleep list ( = blocked list ) 추가 - block 상태의 쓰레드의 리스트가 관리된다. */
-static int64_t next_tick_to_awake;   /* sleep list 중 가장 먼저 일어나야 할 blocked thread */
+
+/* List of process in THREAD_BLOCK state */
+static struct list sleep_list;
+// sleep_list에서 awake되는 시점이 가장 빠른 thread의 awake_ticks 시점
+static int64_t next_tick_to_awake; 
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -110,7 +114,7 @@ thread_init (void) {
 	lock_init (&tid_lock);
 	list_init (&ready_list);
 	list_init (&destruction_req);
-	list_init (&sleep_list);    	 /*sleep list 초기화*/ 
+	list_init (&sleep_list);
 
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread ();
@@ -181,6 +185,8 @@ thread_print_stats (void) {
 tid_t
 thread_create (const char *name, int priority,
 		thread_func *function, void *aux) {
+	// function: thread가 생성된 뒤 그 thread의 context에서 수행할 업무(thread routine)
+	// aux: function에 넘길 인자
 	struct thread *t;
 	tid_t tid;
 
