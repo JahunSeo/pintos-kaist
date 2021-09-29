@@ -139,6 +139,10 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
+	// 매 tick 마다 sleep_list에서 깨울 thread가 있는지 확인
+	if (get_next_tick_to_awake() <= ticks) {
+		thread_awake(ticks);
+	}
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
