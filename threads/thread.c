@@ -348,6 +348,36 @@ void thread_sleep(int64_t ticks) {
 	intr_set_level(old_level);
 }
 
+/* sleep_list에서 깨워야 하는 thread들을 모두 깨움 */
+void thread_awake(int64_t curr_tick) {
+	// next_tick_to_awake를 최대값으로 설정
+	next_tick_to_awake = INT64_MAX;
+	// sleep_list에 있는 첫 번째 thread로 e 초기 설정 (정확히는 첫 번째 thread의 elem)
+	struct list_elem *e;
+	e = list_begin(&sleep_list);
+	// e가 thread의 끝(tail)에 닿을 때까지 순서대로 확인
+	while (e != list_end(&sleep_list)) {
+		// e로 thread의 주소값 확보
+		struct thread *t = list_entry(e, struct thread, elem);
+		// thread가 일어나야할 시점이 현재 시점보다 작거나 같은 경우,
+		// 즉 thread가 일어나야할 시점에 이른 경우
+		if (curr_tick >= t-> wakeup_tick) {
+			// 해당 thread의 상태를 ready로 바꾸고 ready_list에 추가
+			thread_unblock(t);
+			// 해당 thread를 sleep_list에서 제거
+			e = list_remove(&t->elem);
+		} 
+		// thread가 아직 일어나야할 시점이 아닌 경우
+		else {
+			// 해당 thread의 일어나야할 시점으로 next_tick_to_awake 업데이트
+			update_next_tick_to_awake(t->wakeup_tick);
+			// 다음 thread로 이동
+			e = list_next(e);
+		}
+	}
+
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
