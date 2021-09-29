@@ -99,9 +99,13 @@ timer_sleep (int64_t ticks) {
 	printf("- start: %d, %d\n", start, intr_get_level ());	
 
 	ASSERT (intr_get_level () == INTR_ON); // 현재 interrupt이 enabled인 상태인지 확인
-	while (timer_elapsed (start) < ticks)
-		printf("- ticks: curr %d - start %d < ticks %d\n", timer_ticks(), start, ticks);
-		thread_yield ();
+	/* 아래는 busy-wait을 유발하는 방식으로, 비효율적임 */
+	// while (timer_elapsed (start) < ticks)
+	// printf("- ticks: curr %d - start %d < ticks %d\n", timer_ticks(), start, ticks);
+	// thread_yield ();
+
+	//	thread를 sleep list에 삽입하는 함수 호출
+	thread_sleep(start + ticks);
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -133,6 +137,12 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
+
+	// 매 tick마다 sleep list에서 awake해야 할 thread가 있는지 확인해서
+	if(get_next_tick_to_awake() <= ticks){
+		// thread_awake()로 깨움
+		thread_awake(ticks);
+	}
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

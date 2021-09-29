@@ -316,6 +316,76 @@ thread_yield (void) {
 	intr_set_level (old_level);
 }
 
+// 쓰레드를 ticks 시각까지 sleep시키는 함수
+void thread_sleep(int64_t ticks) {
+	struct thread *cur;
+
+	enum intr_level old_level;
+	// 인터럽트를 금지하고 이전 인터럽트 레벨을 저장 
+	old_level = intr_disable();
+
+	// idle 쓰레드인지 비교하기 위해 현재 쓰레드(구조체)를 설정
+	cur = thread_current();
+	// idle 쓰레드는 sleep되면 안됨
+	ASSERT (cur != idle_thread);
+
+	// awake 함수가 실행돼야 할 tick 값을 update 해줌
+	update_next_tick_to_awake(cur->wakeup_tick = ticks);
+
+	/* 현재 쓰레드를 sleep list 맨 끝에 삽입한 후 스케줄링 */ 
+	list_push_back(&sleep_list, &cur->elem);
+
+	// 이 쓰레드를 block하고 다시 스케줄될 때까지 block된 상태로 대기 */
+	thread_block();
+
+	/* 인터럽트를 다시 받아들일 수 있도록 설정 */
+	intr_set_level(old_level);
+}
+
+// sleep list의 쓰레드 중에 ticks 시각이 지난 쓰레드를 전부 깨우는 함수
+void thread_awake(int64_t curr_tick){	// argument로 current tick이 들어감
+	next_tick_to_awake = INT64_MAX;
+	struct list_elem *e;
+
+	// sleep_list의 head 다음 값을 e에 넣어줌
+	e = list_begin(&sleep_list);
+
+	// sleep_list의 모든 entry를 순회하면서 
+	while(e != list_end(&sleep_list)){
+		struct thread * t = list_entry(e, struct thread, elem);
+
+		// wakeup_tick이 현재 깨워야 할 tick보다 작다면
+		if(curr_tick >= t->wakeup_tick){
+			// sleep_list에서 제거하고 unblock 
+			e = list_remove(&t->elem);
+			thread_unblock(t);
+
+		}
+
+		// wakeup_tick이 현재 깨워야 할 tick보다 크다면
+		else{
+			e = list_next(e);
+			// next_tick_to_awake 변수를 갱신하기 위해 아래 함수 호출
+			update_next_tick_to_awake(t->wakeup_tick);
+		}
+	}
+
+}
+
+
+// 가장 먼저 일어나야 할 쓰레드가 일어날 시각을 반환하는 함수
+// setter
+void update_next_tick_to_awake(int64_t ticks) {
+	/* next_tick_to_awake가 깨워야 할 쓰레드의 깨어날 tick 값 중 가장 작은 tick을 갖도록 업데이트 */
+	next_tick_to_awake = (next_tick_to_awake > ticks) ? ticks : next_tick_to_awake;
+}
+
+// getter
+int64_t get_next_tick_to_awake(void) {
+	// next_tick_to_awake는 static으로 정의되어 있음
+	return next_tick_to_awake;
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
