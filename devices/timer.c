@@ -99,9 +99,15 @@ timer_sleep (int64_t ticks) {
 	printf("- start: %d, %d\n", start, intr_get_level ());	
 
 	ASSERT (intr_get_level () == INTR_ON); // 현재 interrupt이 enabled인 상태인지 확인
-	while (timer_elapsed (start) < ticks)
-		printf("- ticks: curr %d - start %d < ticks %d\n", timer_ticks(), start, ticks);
-		thread_yield ();
+
+	// 현재 thread를 잠재움
+	// 이 때, 현재 시점에 기다려야 하는 ticks를 더해 깨어나야 하는 시점을 인자로 전달
+	thread_sleep(start + ticks);
+
+	/* busy waiting을 유발하는 코드 */
+	// while (timer_elapsed (start) < ticks)
+	// 	printf("- ticks: curr %d - start %d < ticks %d\n", timer_ticks(), start, ticks);
+	// 	thread_yield ();
 }
 
 /* Suspends execution for approximately MS milliseconds. */
