@@ -316,6 +316,60 @@ thread_yield (void) {
 	intr_set_level (old_level);
 }
 
+/*sleeplist (=blocked list) 중 가장 먼저 일어나야 하는 thread의 절대시간 업데이트*/
+void update_next_tick_to_awake(int64_t ticks){
+	next_tick_to_awake = (next_tick_to_awake > ticks) ? ticks : next_tick_to_awake;
+	/*기존의 최소시간 값과 인자로 들어온 tick의 비교 후 업데이트*/
+}
+
+int64_t get_next_tick_to_awake(void){
+	return next_tick_to_awake;
+}
+
+void thread_sleep( int64_t ticks){   /* thread를 절대시간 ticks까지 재운다 */
+	struct thread *cur;
+	
+	/*기존 interrupt상태를 old_level에 저장한다. 그리고 인터럽트를 off한다. */ 
+	enum intr_level old_level;
+	old_level = intr_disable();
+
+	cur = thread_current();
+	ASSERT(cur != idle_thread);    /* idle 쓰레드는 sleep 되지 않아야함 */
+	
+	/* cur -> wakeup_tick를 thread_sleep 함수의 argument로 update하고, 해당 값을 인자로서 next_tick_to_awake 업데이트*/
+	update_next_tick_to_awake(cur-> wakeup_tick = ticks); 
+
+	/* 현재 쓰레드의 elem 인자를 sleep list에 삽입한다. */
+	list_push_back(&sleep_list, &cur->elem);
+
+	// 현재 쓰레드를 block 상태로 전환하고 schedule()함수 실행한다. (thread_block() 에는 schedule()이 있음)
+	thread_block();
+
+	/* 인터럽트 상태 리셋 */
+	intr_set_level(old_level);
+}
+
+/*wakeup_tick에는 현재 시간이 들어간다 ticks(절대시간)*/
+void thread_awake(int64_t curr_tick){
+	next_tick_to_awake = INT64_MAX;
+	struct list_elem *e;
+	e = list_begin(&sleep_list);
+	while (e != list_end(&sleep_list)){
+		struct thread *t = list_entry(e, struct thread, elem);
+		 /* list 요소가 가지고 있는 wakeup_tick의 시간이 지났다면 쓰레드를 unblock하여 ready상태로 변경하고 ready list에 넣는다.
+		    그리고 현재 리스트에서 삭제한다. */
+		if (curr_tick >= t->wakeup_tick){   
+			e = list_remove(&t->elem);
+			thread_unblock(t);
+		}
+		else{    /*sleep list 요소 중 시간이 남은 element는 지나친다. (+ next_tick_to_awake 를 갱신한다.)*/
+			e = list_next(e);
+			update_next_tick_to_awake(t->wakeup_tick);
+		}
+	}
+}
+
+
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
