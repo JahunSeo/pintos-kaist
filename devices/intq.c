@@ -1,3 +1,6 @@
+// Interrupt queue, for managing a circular queue that both kernel threads and interrupt handlers want to access. 
+// Used by the keyboard and serial drivers.
+
 #include "devices/intq.h"
 #include <debug.h>
 #include "threads/thread.h"
