@@ -362,17 +362,17 @@ void thread_awake(int64_t curr_tick) {
 		// thread가 일어나야할 시점이 현재 시점보다 작거나 같은 경우,
 		// 즉 thread가 일어나야할 시점에 이른 경우
 		if (curr_tick >= t-> wakeup_tick) {
-			// 해당 thread의 상태를 ready로 바꾸고 ready_list에 추가
-			thread_unblock(t);
 			// 해당 thread를 sleep_list에서 제거
 			e = list_remove(&t->elem);
+			// 해당 thread의 상태를 ready로 바꾸고 ready_list에 추가
+			thread_unblock(t);
 		} 
 		// thread가 아직 일어나야할 시점이 아닌 경우
 		else {
+			// e를 다음 thread로 변경
+			e = list_next(e);
 			// 해당 thread의 일어나야할 시점으로 next_tick_to_awake 업데이트
 			update_next_tick_to_awake(t->wakeup_tick);
-			// 다음 thread로 이동
-			e = list_next(e);
 		}
 	}
 

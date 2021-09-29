@@ -94,9 +94,9 @@ timer_elapsed (int64_t then) {
 /* Suspends execution for approximately TICKS timer ticks. */
 void
 timer_sleep (int64_t ticks) {
-	printf("[timer_sleep]\n");
+	// printf("[timer_sleep]\n");
 	int64_t start = timer_ticks ();
-	printf("- start: %d, %d\n", start, intr_get_level ());	
+	// printf("- start: %d, %d\n", start, intr_get_level ());	
 
 	ASSERT (intr_get_level () == INTR_ON); // 현재 interrupt이 enabled인 상태인지 확인
 
