@@ -253,7 +253,7 @@ thread_unblock (struct thread *t) {
 	ASSERT (t->status == THREAD_BLOCKED);
 	// list_push_back (&ready_list, &t->elem); // 우선순위 상관 없이 ready_list의 가장 마지막에 추가함
 	// 기존에 read_list에 있는 thread들과 우선순위를 비교하여 현재 thread가 들어갈 위치를 찾음
-	list_insert_ordered(&ready_list, &->elem, thread_compare_priority, 0) 
+	list_insert_ordered(&ready_list, &t->elem, thread_compare_priority, 0);
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
