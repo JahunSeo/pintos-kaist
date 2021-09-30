@@ -383,7 +383,12 @@ void thread_awake(int64_t curr_tick) {
 /* list_element a와 b가 속한 thread의 priority member값의 대소비교 결과를 bool 타입으로 반환한다.*/
 bool thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED){
 	return list_entry (a, struct thread, elem)->priority > list_entry (b, struct thread, elem)->priority;}
-}
+/*  
+if priority schedule is launched on single thread, the highest thread continue running unless there is block or thread terminated.
+if it is launched on multi thread, the other thread run by round robin method. note that '>' enable the other thread run by round robin.
+
+*/
+
 
 /*현재 CPU를 점유중인 thread와 ready list에서 1순위의 thread와 priority를 비교한 후 priority에 따라 yield를 실행한다. */
 void test_max_priority (void){
@@ -397,6 +402,7 @@ void test_max_priority (void){
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+	test_max_priority();
 }
 
 /* Returns the current thread's priority. */
