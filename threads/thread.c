@@ -384,6 +384,7 @@ void thread_awake(int64_t curr_tick) {
 bool thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED){
 	return list_entry (a, struct thread, elem)->priority > list_entry (b, struct thread, elem)->priority;}
 /*  
+*** a > b 일때 round robin으로 run한다.
 if priority schedule is launched on single thread, the highest thread continue running unless there is block or thread terminated.
 if it is launched on multi thread, the other thread run by round robin method. note that '>' enable the other thread run by round robin.
 
