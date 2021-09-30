@@ -375,7 +375,15 @@ void thread_awake(int64_t curr_tick) {
 			update_next_tick_to_awake(t->wakeup_tick);
 		}
 	}
+}
 
+/* 2개의 thread를 인자로 받아 priority를 비교하는 함수
+  - list_insert_ordered 함수에 인자로 활용됨 */
+void thread_cmp_priority(const struct list_elem *a, 
+	const struct list_elem *b, 
+	void *aux UNUSED) {
+	return list_entry (a, struct thread, elem)->priority
+			> list_entry (b, struct thread, elem)->priority;
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
