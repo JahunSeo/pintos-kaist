@@ -385,6 +385,14 @@ bool thread_compare_priority (const struct list_elem *a, const struct list_elem 
 	return list_entry (a, struct thread, elem)->priority > list_entry (b, struct thread, elem)->priority;}
 }
 
+/*현재 CPU를 점유중인 thread와 ready list에서 1순위의 thread와 priority를 비교한 후 priority에 따라 yield를 실행한다. */
+void test_max_priority (void){
+	if (!list_empty (&ready_list) && thread_current ()->priority < list_entry (list_front(&ready_list), struct thread, elem)->priority){
+		thread_yield ();
+	}
+}
+
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
