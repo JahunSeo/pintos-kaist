@@ -239,7 +239,10 @@ thread_block (void) {
    This function does not preempt the running thread.  This can
    be important: if the caller had disabled interrupts itself,
    it may expect that it can atomically unblock a thread and
-   update other data. */
+   update other data. 
+   
+   thread_create, thread_awake 등의 상황에서 call됨
+   */
 void
 thread_unblock (struct thread *t) {
 	enum intr_level old_level;
@@ -248,7 +251,9 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+	// list_push_back (&ready_list, &t->elem); // 우선순위 상관 없이 ready_list의 가장 마지막에 추가함
+	// 기존에 read_list에 있는 thread들과 우선순위를 비교하여 현재 thread가 들어갈 위치를 찾음
+	list_insert_ordered(&ready_list, &->elem, thread_compare_priority, 0) 
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -311,7 +316,8 @@ thread_yield (void) {
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
-		list_push_back (&ready_list, &curr->elem);
+		list_insert_ordered(&ready_list, &curr->elem, thread_compare_priority, 0);
+		// list_push_back (&ready_list, &curr->elem); // 우선순위 상관 없이 ready_list의 가장 마지막에 추가함
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
