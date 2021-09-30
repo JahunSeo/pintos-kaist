@@ -385,7 +385,7 @@ void thread_awake(int64_t curr_tick) {
 
 /* 2개의 thread를 인자로 받아 priority를 비교하는 함수
   - list_insert_ordered 함수에 인자로 활용됨 */
-void 
+bool
 thread_compare_priority(const struct list_elem *a, 
 	const struct list_elem *b, 
 	void *aux UNUSED) {
@@ -398,9 +398,9 @@ thread_compare_priority(const struct list_elem *a,
   - ready_list가 우선순위로 정렬되어 있으므로 list의 front에서 가져옴 */
 void
 test_max_priority (void) {
-	if (!list_empty(&read_list) && 
+	if (!list_empty(&ready_list) && 
 		thread_current ()-> priority < 
-		list_entry (list_front (&read_list), struct thread, elem)->priority) {
+		list_entry (list_front (&ready_list), struct thread, elem)->priority) {
 			thread_yield ();
 		}
 }
