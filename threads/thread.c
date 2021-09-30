@@ -409,6 +409,8 @@ test_max_priority (void) {
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+	// current thread의 우선순위가 조정된 이후, ready_list에서 더 높은 우선순위의 thread가 있다면 교체
+	test_max_priority();
 }
 
 /* Returns the current thread's priority. */
