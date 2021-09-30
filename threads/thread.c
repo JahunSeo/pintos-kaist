@@ -389,12 +389,24 @@ bool thread_compare_priority (const struct list_elem *a, const struct list_elem 
 	return list_entry (a, struct thread, elem)->priority > list_entry (b, struct thread, elem)->priority;
 }
 
+void
+/* ready_list에서 가장 높은 우선순위를 가진 스레드(head)가 현재 current_thread(CPU 점유중인)인 스레드보다 높으면
+	CPU점유를 양보하는 함수 */
+// test_max_priority 함수는 스레드가 새로 생성돼서 ready_list에 추가되거나 현재 실행중인 스레드의 우선순위가 재조정될 때 호출
+// 즉, 스레드를 새로 생성하는 함수인 thread_create에서 현재 스레드의 우선순위를 재조정하는 thread_set_priority() 내부에 test_max_priority()를 추가
+test_max_priority (void) {
+	if (!list_empty (&ready_list) && thread_current()->priority < list_entry(list_front(&ready_list), struct thread, elem)->priority){
+		thread_yield();
+	}
+}
+
 
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+	test_max_priority();
 }
 
 /* Returns the current thread's priority. */
