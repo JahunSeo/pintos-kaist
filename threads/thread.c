@@ -251,7 +251,7 @@ thread_unblock (struct thread *t) {
 
 	// unblock될 때 우선순위를 정렬되어 ready_list에 스레드를 추가할 수 있게
 	// list_push_back (&ready_list, &t->elem);
-	list_insert_orderd (&ready_list, &t->elem, thread_compare_priority, 0);
+	list_insert_ordered (&ready_list, &t->elem, thread_compare_priority, 0);
 
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
@@ -316,7 +316,7 @@ thread_yield (void) {
 	old_level = intr_disable ();
 	if (curr != idle_thread)
 	// ready_list에 삽입되는 부분을 변경해줌
-		list_insert_orderd (&ready_list, &curr->elem, thread_compare_priority, 0);
+		list_insert_ordered (&ready_list, &curr->elem, thread_compare_priority, 0);
 		// list_push_back (&ready_list, &curr->elem);
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
