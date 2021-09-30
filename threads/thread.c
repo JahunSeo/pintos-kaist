@@ -14,7 +14,6 @@
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
-// just test
 
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
@@ -249,7 +248,11 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+
+	// unblock될 때 우선순위를 정렬되어 ready_list에 스레드를 추가할 수 있게
+	// list_push_back (&ready_list, &t->elem);
+	list_insert_orderd (&ready_list, &t->elem, thread_compare_priority, 0);
+
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -312,7 +315,9 @@ thread_yield (void) {
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
-		list_push_back (&ready_list, &curr->elem);
+	// ready_list에 삽입되는 부분을 변경해줌
+		list_insert_orderd (&ready_list, &curr->elem, thread_compare_priority, 0);
+		// list_push_back (&ready_list, &curr->elem);
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
@@ -378,6 +383,13 @@ void thread_awake(int64_t curr_tick) {
 	}
 
 }
+
+/* 우선순위를 정렬하기 위해 비교함수 정의 */
+bool thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+	return list_entry (a, struct thread, elem)->priority > list_entry (b, struct thread, elem)->priority;
+}
+
+
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
