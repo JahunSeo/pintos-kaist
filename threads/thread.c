@@ -313,7 +313,14 @@ thread_yield (void) {
 	enum intr_level old_level;
 
 	ASSERT (!intr_context ());
-
+	// If the highest-priority thread yields, does it continue running?
+	// YES!
+	// 현재 thread를 ready_list에 넣은 상태에서 scheduling을 하게 됨
+	// 그러므로 만약 current thread가 우선순위가 가장 높은 thread 였다면, 현재 thread가 ready_list의 가장 앞에 위치하게 되고
+	// 결과적으로 현재 thread가 다시 선택됨
+	// 한편, current thread와 우선순위가 동일한 thread가 대기열에 있었다면, 동일한 thread 간에 라운드 로빈이 발생함
+	// 그 이유는, 현재 thread가 ready_list에서 본인과 우선순위가 같은 thread들 중 가장 마지막에 추가되기 때문
+	// thread_compare_priority, list_insert_ordered 함수 참고
 	old_level = intr_disable ();
 	if (curr != idle_thread)
 		list_insert_ordered(&ready_list, &curr->elem, thread_compare_priority, 0);
