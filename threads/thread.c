@@ -316,6 +316,68 @@ thread_yield (void) {
 	intr_set_level (old_level);
 }
 
+/* 가장 먼저 awake해야 하는 thread가 awake되어야 하는 시각을 업데이트 (setter) */
+void update_next_tick_to_awake(int64_t ticks) { 
+	// 질문: next_tick_to_awake를 초기 설정을 하지 않아도 되려나?
+	next_tick_to_awake = (next_tick_to_awake > ticks) ? ticks : next_tick_to_awake;
+}
+
+/* 가장 먼저 awake해야 하는 thread가 awake되어야 하는 시각을 반환 (getter) */
+int64_t get_next_tick_to_awake(void) {
+	return next_tick_to_awake;
+}
+
+/* thread를 ticks까지 재우는 함수 */
+void thread_sleep(int64_t ticks) {
+	struct thread *cur;
+	// interrupt를 막고, 이전 interrupt 상태를 저장함
+	enum intr_level old_level;
+	old_level = intr_disable();
+
+	// 현재 thread를 잠재우기 위해 가져옴 (이 때, idle thread는 sleep되지 않아야 함)
+	cur = thread_current();
+	ASSERT(cur != idle_thread);
+	// awake 함수가 실행될 시점 tick을 update
+	update_next_tick_to_awake(cur->wakeup_tick = ticks);
+	// 현재 thread를 sleep_list에 삽입함
+	list_push_back(&sleep_list, &cur->elem);
+	// 현재 thread의 상태를 block으로 변경 (scheduling까지 진행)
+	thread_block();
+
+	// interrupt 가능 여부를 이전 상태로 되돌림
+	intr_set_level(old_level);
+}
+
+/* sleep_list에서 깨워야 하는 thread들을 모두 깨움 */
+void thread_awake(int64_t curr_tick) {
+	// next_tick_to_awake를 최대값으로 설정
+	next_tick_to_awake = INT64_MAX;
+	// sleep_list에 있는 첫 번째 thread로 e 초기 설정 (정확히는 첫 번째 thread의 elem)
+	struct list_elem *e;
+	e = list_begin(&sleep_list);
+	// e가 thread의 끝(tail)에 닿을 때까지 순서대로 확인
+	while (e != list_end(&sleep_list)) {
+		// e로 thread의 주소값 확보
+		struct thread *t = list_entry(e, struct thread, elem);
+		// thread가 일어나야할 시점이 현재 시점보다 작거나 같은 경우,
+		// 즉 thread가 일어나야할 시점에 이른 경우
+		if (curr_tick >= t-> wakeup_tick) {
+			// 해당 thread를 sleep_list에서 제거
+			e = list_remove(&t->elem);
+			// 해당 thread의 상태를 ready로 바꾸고 ready_list에 추가
+			thread_unblock(t);
+		} 
+		// thread가 아직 일어나야할 시점이 아닌 경우
+		else {
+			// e를 다음 thread로 변경
+			e = list_next(e);
+			// 해당 thread의 일어나야할 시점으로 next_tick_to_awake 업데이트
+			update_next_tick_to_awake(t->wakeup_tick);
+		}
+	}
+
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
