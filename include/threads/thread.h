@@ -143,6 +143,11 @@ void update_next_tick_to_awake(int64_t ticks);
 int thread_get_priority (void);
 void thread_set_priority (int);
 
+// function for Priority Scheduling 
+void test_max_priority (void);
+bool thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+
+
 int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);

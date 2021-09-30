@@ -248,7 +248,11 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+
+	// unblock될 때 우선순위를 정렬되어 ready_list에 스레드를 추가할 수 있게
+	// list_push_back (&ready_list, &t->elem);
+	list_insert_ordered (&ready_list, &t->elem, thread_compare_priority, 0);
+
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -311,7 +315,9 @@ thread_yield (void) {
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
-		list_push_back (&ready_list, &curr->elem);
+	// ready_list에 삽입되는 부분을 변경해줌
+		list_insert_ordered (&ready_list, &curr->elem, thread_compare_priority, 0);
+		// list_push_back (&ready_list, &curr->elem);
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
@@ -378,10 +384,29 @@ void thread_awake(int64_t curr_tick) {
 
 }
 
+/* 우선순위를 정렬하기 위해 비교함수 정의 */
+bool thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+	return list_entry (a, struct thread, elem)->priority > list_entry (b, struct thread, elem)->priority;
+}
+
+void
+/* ready_list에서 가장 높은 우선순위를 가진 스레드(head)가 현재 current_thread(CPU 점유중인)인 스레드보다 높으면
+	CPU점유를 양보하는 함수 */
+// test_max_priority 함수는 스레드가 새로 생성돼서 ready_list에 추가되거나 현재 실행중인 스레드의 우선순위가 재조정될 때 호출
+// 즉, 스레드를 새로 생성하는 함수인 thread_create에서 현재 스레드의 우선순위를 재조정하는 thread_set_priority() 내부에 test_max_priority()를 추가
+test_max_priority (void) {
+	if (!list_empty (&ready_list) && thread_current()->priority < list_entry(list_front(&ready_list), struct thread, elem)->priority){
+		thread_yield();
+	}
+}
+
+
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+	test_max_priority();
 }
 
 /* Returns the current thread's priority. */
