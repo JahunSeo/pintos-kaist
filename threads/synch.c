@@ -119,7 +119,7 @@ sema_up (struct semaphore *sema) {
 	}
 	sema->value++;
 	// current thread의 우선 순위보다 높은 thread가 ready_list에 있다면 교체
-	thread_max_priority();
+	test_max_priority();
 	intr_set_level (old_level);
 }
 
