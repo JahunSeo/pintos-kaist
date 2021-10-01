@@ -66,7 +66,8 @@ sema_down (struct semaphore *sema) {
 
 	old_level = intr_disable ();
 	while (sema->value == 0) {
-		list_push_back (&sema->waiters, &thread_current ()->elem);
+		/*semaphore의 waiting list에 insert하는 방식을 push_back 방식에서 priority ordered로 변경 */
+		list_insert_ordered(&sema->waiters, &thread_current()->elem, thread_compare_priority,0);
 		thread_block ();
 	}
 	sema->value--;
@@ -110,9 +111,13 @@ sema_up (struct semaphore *sema) {
 
 	old_level = intr_disable ();
 	if (!list_empty (&sema->waiters))
+		/* waiting중 priority 변경 가능성이 있기 때문에, semaphore waiting list를 내림차순으로 sorting 한다. */
+		list_sort(&sema->waiters, thread_compare_priority,0);	
 		thread_unblock (list_entry (list_pop_front (&sema->waiters),
 					struct thread, elem));
 	sema->value++;
+	/* unblock으로 새롭게 ready list에 thread가 추가된 쓰레드와 running중인 쓰레드를 비교하고 preemption한다.*/
+	thread_max_priority();
 	intr_set_level (old_level);
 }
 
