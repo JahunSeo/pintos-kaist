@@ -112,11 +112,14 @@ sema_up (struct semaphore *sema) {
 
 	old_level = intr_disable ();
 	if (!list_empty (&sema->waiters)) {
-		
+		// ready_list의 우선순위가 변동되었을 수 있으므로, list_sort로 정렬 상태 확보
+		list_sort(&sema->waiters, thread_compare_priority, 0);
 		thread_unblock (list_entry (list_pop_front (&sema->waiters),
 					struct thread, elem));
 	}
 	sema->value++;
+	// current thread의 우선 순위보다 높은 thread가 ready_list에 있다면 교체
+	thread_max_priority();
 	intr_set_level (old_level);
 }
 
