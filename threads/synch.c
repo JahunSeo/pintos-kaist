@@ -328,3 +328,16 @@ cond_broadcast (struct condition *cond, struct lock *lock) {
 	while (!list_empty (&cond->waiters))
 		cond_signal (cond, lock);
 }
+
+/* condition waiters list의 각 요소 간 우선 순위를 비교하는 함수 */
+bool
+sema_compare_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+	struct semaphore_elem *a_sema = list_entry(a, struct semaphore_elem, elem);
+	struct semaphore_elem *b_sema = list_entry(b, struct semaphore_elem, elem);
+
+	struct list *waiter_a_sema = &(a_sema->semaphore.waiters);
+	struct list *waiter_b_sema = &(b_sema->semaphore.waiters);
+
+	return list_entry(list_begin(waiter_a_sema), struct thread, elem)->priority
+			> list_entry(list_begin(waiter_b_sema), struct thread, elem)->priority;
+}
