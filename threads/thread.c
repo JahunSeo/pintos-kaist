@@ -446,7 +446,26 @@ remove_with_lock (struct lock *lock) {
 				list_remove (&t->donation_elem);
 			}
 	}
+}
 
+/* current thread의 우선순위를 업데이트하는 함수 
+ - 본래의 priority와 donations에 있는 우선순위 중 높은 값으로 업데이트 */
+void
+refresh_priority(void) {
+	struct thread *curr = thread_current ();
+	// 본래의 priority로 1차 업데이트
+	curr->priority = curr->init_priority;
+	// donations 중 우선순위가 가장 높은 thread의 우선순위와 비교하여 2차 업데이트
+	if (!list_empty (&curr->donations)) {
+		// donations을 우선순위 높은 순으로 정렬해 begin의 우선순위 확인 
+		// - 질문: 이미 추가할 때마다 순서를 유지하고 있는데 꼭 해야할까? 
+		//       혹은 어차피 여기서 정렬할거면, 그냥 넣을 때는 맨 뒤에 넣으면 되지 않을까?
+		list_sort (&curr->donations, thread_compare_donate_priority, 0); 
+		struct thread *front = list_entry(list_front (&curr->donations), struct thread, donation_elem);
+		if (front->priority > curr->priority) {
+			curr->priority = front->priority;
+		}
+	}
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
