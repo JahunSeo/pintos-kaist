@@ -54,6 +54,9 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 
+/* Donation. */
+#define DONATE_MAX_DEPTH 8		/* maximum number of depth to donate */
+
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
@@ -386,27 +389,95 @@ void thread_awake(int64_t curr_tick) {
 }
 
 /* 우선순위를 정렬하기 위해 비교함수 정의 */
-bool thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
-	return list_entry (a, struct thread, elem)->priority > list_entry (b, struct thread, elem)->priority;
+bool 
+thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+	return list_entry (a, struct thread, elem)->priority 
+			> list_entry (b, struct thread, elem)->priority;
 }
 
-void
+/* donations를 우선순위 기준으로 정렬하기 위한 비교 함수 정의 */
+bool
+thread_compare_donate_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+	return list_entry (a, struct thread, donation_elem) -> priority 
+			> list_entry (b, struct thread, donation_elem)-> priority;
+}
+
 /* ready_list에서 가장 높은 우선순위를 가진 스레드(head)가 현재 current_thread(CPU 점유중인)인 스레드보다 높으면
 	CPU점유를 양보하는 함수 */
 // test_max_priority 함수는 스레드가 새로 생성돼서 ready_list에 추가되거나 현재 실행중인 스레드의 우선순위가 재조정될 때 호출
 // 즉, 스레드를 새로 생성하는 함수인 thread_create에서 현재 스레드의 우선순위를 재조정하는 thread_set_priority() 내부에 test_max_priority()를 추가
+void
 test_max_priority (void) {
 	if (!list_empty (&ready_list) && thread_current()->priority < list_entry(list_front(&ready_list), struct thread, elem)->priority){
 		thread_yield();
 	}
 }
 
+/* current thread를 시작으로 필요한 범위까지 우선순위를 양도 */
+void
+donate_priority (void) {
+	struct thread *curr = thread_current ();
+	int depth;
+	// 최대 DONATE_MAX_DEPTH 까지 우선순위를 양도 
+	for (depth = 0; depth < DONATE_MAX_DEPTH; depth++) {
+		// thread가 기다리는 lock이 있는지 확인
+		if (!curr->wait_on_lock) break;
+		// 기다리는 lock의 holder를 찾아, holder의 우선순위를 업데이트
+		// - 이 때, holder의 우선순위 보다 현재 thread의 우선순위가 높은 경우에만 업데이트 필요
+		struct thread *holder = curr->wait_on_lock->holder;
+		if (holder->priority < curr->priority) {
+			holder->priority = curr->priority;
+		}
+		// holder를 curr로 업데이트해 초점 이동
+		curr = holder;
+	}
+}
 
+/* current thread의 donations에서 lock이 반환되기를 기다리고 있던 thread를 제거
+- 이 함수는 current thread가 lock을 release하는 시점에 실행됨 */
+void
+remove_with_lock (struct lock *lock) {
+	struct list_elem *e;
+	struct thread *curr = thread_current ();
+	// 현재 thread의 donations들 중 반환할 lock을 기다리고 있던 thread를 삭제
+	for (e = list_begin (&curr->donations); 
+		e != list_end (&curr->donations); 
+		e = list_next (e)) {
+			struct thread *t = list_entry (e, struct thread, donation_elem);
+			if (t->wait_on_lock == lock) {
+				list_remove (&t->donation_elem);
+			}
+	}
+}
+
+/* current thread의 우선순위를 업데이트하는 함수 
+ - 본래의 priority와 donations에 있는 우선순위 중 높은 값으로 업데이트 */
+void
+refresh_priority(void) {
+	struct thread *curr = thread_current ();
+	// 본래의 priority로 1차 업데이트
+	curr->priority = curr->init_priority;
+	// donations 중 우선순위가 가장 높은 thread의 우선순위와 비교하여 2차 업데이트
+	if (!list_empty (&curr->donations)) {
+		// donations을 우선순위 높은 순으로 정렬해 begin의 우선순위 확인 
+		// - 질문: 이미 추가할 때마다 순서를 유지하고 있는데 꼭 해야할까? 
+		//       혹은 어차피 여기서 정렬할거면, 그냥 넣을 때는 맨 뒤에 넣으면 되지 않을까?
+		list_sort (&curr->donations, thread_compare_donate_priority, 0); 
+		struct thread *front = list_entry(list_front (&curr->donations), struct thread, donation_elem);
+		if (front->priority > curr->priority) {
+			curr->priority = front->priority;
+		}
+	}
+}
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
-	thread_current ()->priority = new_priority;
+	// current thread의 priority는 donation에 의해 수정된 상태일 수 있으므로
+	// priority가 아닌 init_priority를 업데이트
+	thread_current ()->init_priority = new_priority;
+	// init_priority가 update된 상태에서 다시 refresh를 진행
+	refresh_priority();
 	test_max_priority();
 }
 
@@ -505,6 +576,11 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
+
+	// donation 관련 멤버 초기 설정
+	t->init_priority = priority;  // 변하지 않고, 변경된 priority를 되돌릴 때 사용됨
+	t->wait_on_lock = NULL;	       
+	list_init (&t->donations);    
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should

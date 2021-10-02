@@ -96,6 +96,13 @@ struct thread {
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
 
+	/* donation 관련 멤버 */
+	int init_priority; 					/* (donate 받는 입장에서) donate 받기 전 최초의 priority를 기록 */
+
+	struct lock *wait_on_lock;          /* (donate 주는 입장에서) donate 주는 이유인 lock을 기록 */
+	struct list donations;				/* (donate 받는 입장에서) 본인에게 donate 준 thread 들을 기록 */
+	struct list_elem donation_elem;		/* (donate 주는 입장에서) donate 받은 thread의 donation list에서 연결 노드로 사용됨 */
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
@@ -145,8 +152,12 @@ void thread_set_priority (int);
 
 // function for Priority Scheduling 
 void test_max_priority (void);
-bool thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+bool thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
+bool thread_compare_donate_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
 
+void donate_priority (void);
+void remove_with_lock (struct lock *lock);
+void refresh_priority(void);
 
 int thread_get_nice (void);
 void thread_set_nice (int);

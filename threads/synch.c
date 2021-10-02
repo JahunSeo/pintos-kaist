@@ -195,8 +195,22 @@ lock_acquire (struct lock *lock) {
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
 
+	// lock 획득 전, 누군가 lock을 가지고 있다면 priority를 양도
+	struct thread *curr = thread_current ();
+	if (lock->holder) {
+		// 우선순위를 양도하는 목적인 lock을 기록
+		curr->wait_on_lock = lock;
+		// 우선순위를 양도하는 thread의 donations에 current thread를 연결
+		list_insert_ordered (&lock->holder->donations, &curr->donation_elem, thread_compare_donate_priority, 0);
+		// 우선순위를 양도
+		donate_priority ();
+	}
+	// lock 획득 요청
 	sema_down (&lock->semaphore);
-	lock->holder = thread_current ();
+
+	// lock 획득 후, wait_on_lock 초기화
+	curr->wait_on_lock = NULL;
+	lock->holder = curr;
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -228,6 +242,9 @@ void
 lock_release (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (lock_held_by_current_thread (lock));
+
+	remove_with_lock (lock);
+	refresh_priority ();
 
 	lock->holder = NULL;
 	sema_up (&lock->semaphore);
@@ -289,7 +306,7 @@ cond_wait (struct condition *cond, struct lock *lock) {
 	ASSERT (lock_held_by_current_thread (lock));
 
 	sema_init (&waiter.semaphore, 0); /* 새롭게 선언된 semaphore value 0으로 초기화 및 list member 초기화*/
-	list_insert_ordered(&cond->waiters, &waiter.elem, sema_compare_priority,0);
+	list_insert_ordered(&cond->waiters, &waiter.elem, sema_compare_priority, 0);
 	/* cond_wait에 진입한 서로 다른 thread는 각각 새로운 semaphore에 속하게 되며 해당 semaphore를 관리하는 list가 cond->waiters */
 	/*기존 push back 방식에서 cond waiters 의 element에 대응하는 쓰레드간의 priority 순서로 insert하는 방식으로 변경*/
 
