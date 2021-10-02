@@ -54,6 +54,9 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 
+/* Donation. */
+#define DONATE_MAX_DEPTH 8		/* maximum number of depth to donate */
+
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
@@ -410,6 +413,25 @@ test_max_priority (void) {
 	}
 }
 
+/* current thread를 시작으로 필요한 범위까지 우선순위를 양도 */
+void
+donate_priority (void) {
+	struct thread *curr = thread_current ();
+	int depth;
+	// 최대 DONATE_MAX_DEPTH 까지 우선순위를 양도 
+	for (depth = 0; depth < DONATE_MAX_DEPTH; depth++) {
+		// thread가 기다리는 lock이 있는지 확인
+		if (!curr->wait_on_lock) break;
+		// 기다리는 lock의 holder를 찾아, holder의 우선순위를 업데이트
+		// - 이 때, holder의 우선순위 보다 현재 thread의 우선순위가 높은 경우에만 업데이트 필요
+		struct thread *holder = curr->wait_on_lock->holder;
+		holder->priority = curr->priority;
+		// holder를 curr로 업데이트해 초점 이동
+		curr = holder;
+	}
+
+
+}
 
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
