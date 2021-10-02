@@ -425,7 +425,9 @@ donate_priority (void) {
 		// 기다리는 lock의 holder를 찾아, holder의 우선순위를 업데이트
 		// - 이 때, holder의 우선순위 보다 현재 thread의 우선순위가 높은 경우에만 업데이트 필요
 		struct thread *holder = curr->wait_on_lock->holder;
-		holder->priority = curr->priority;
+		if (holder->priority < curr->priority) {
+			holder->priority = curr->priority;
+		}
 		// holder를 curr로 업데이트해 초점 이동
 		curr = holder;
 	}
