@@ -429,10 +429,25 @@ donate_priority (void) {
 		// holder를 curr로 업데이트해 초점 이동
 		curr = holder;
 	}
-
-
 }
 
+/* current thread의 donations에서 lock이 반환되기를 기다리고 있던 thread를 제거
+- 이 함수는 current thread가 lock을 release하는 시점에 실행됨 */
+void
+remove_with_lock (struct lock *lock) {
+	struct list_elem *e;
+	struct thread *curr = thread_current ();
+	// 현재 thread의 donations들 중 반환할 lock을 기다리고 있던 thread를 삭제
+	for (e = list_begin (&curr->donations); 
+		e != list_end (&curr->donations); 
+		e = list_next (e)) {
+			struct thread *t = list_entry (e, struct thread, donation_elem);
+			if (t->wait_on_lock == lock) {
+				list_remove (&t->donation_elem);
+			}
+	}
+
+}
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
