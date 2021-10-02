@@ -95,6 +95,10 @@ struct thread {
 
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
+	int init_priority;                  /* donation에 의해 priority가 변경되는 경우 donated thread의 변경 전 초기값을 기록해놓기 위함*/
+	struct lock *wait_on_lock;			/* donate thread가 기다리는 lock */
+	struct list donations;				/* donated thread가 donate thread의 list를 관리하기 위한 list*/
+	struct list_elem donation_elem;     /* donation list의 element*/
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
@@ -109,6 +113,10 @@ struct thread {
 	struct intr_frame tf;               /* Information for switching */
 	unsigned magic;                     /* Detects stack overflow. */
 };
+
+void donate_priority (void);
+void remove_with_lock (struct lock *lock);
+void refresh_priority (void);
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -145,8 +153,8 @@ void thread_set_priority (int);
 
 // function for Priority Scheduling 
 void test_max_priority (void);
-bool thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
-
+bool thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux );
+bool thread_compare_donate_priority (const struct list_elem *a, const struct list_elem *b, void *aux );
 
 int thread_get_nice (void);
 void thread_set_nice (int);
