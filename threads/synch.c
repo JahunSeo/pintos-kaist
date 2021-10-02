@@ -306,7 +306,7 @@ cond_wait (struct condition *cond, struct lock *lock) {
 	ASSERT (lock_held_by_current_thread (lock));
 
 	sema_init (&waiter.semaphore, 0); /* 새롭게 선언된 semaphore value 0으로 초기화 및 list member 초기화*/
-	list_insert_ordered(&cond->waiters, &waiter.elem, sema_compare_priority,0);
+	list_insert_ordered(&cond->waiters, &waiter.elem, sema_compare_priority, 0);
 	/* cond_wait에 진입한 서로 다른 thread는 각각 새로운 semaphore에 속하게 되며 해당 semaphore를 관리하는 list가 cond->waiters */
 	/*기존 push back 방식에서 cond waiters 의 element에 대응하는 쓰레드간의 priority 순서로 insert하는 방식으로 변경*/
 
