@@ -505,6 +505,10 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
+	/*donation 기능을 위한 function 추가*/
+	t->init_priority = priority;   /* 변하지 않는 초기 값 */
+	t->wait_on_lock =NULL;
+	list_init (&t->donations);
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
