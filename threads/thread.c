@@ -471,7 +471,11 @@ refresh_priority(void) {
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
-	thread_current ()->priority = new_priority;
+	// current thread의 priority는 donation에 의해 수정된 상태일 수 있으므로
+	// priority가 아닌 init_priority를 업데이트
+	thread_current ()->init_priority = new_priority;
+	// init_priority가 update된 상태에서 다시 refresh를 진행
+	refresh_priority();
 	test_max_priority();
 }
 
