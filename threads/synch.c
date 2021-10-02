@@ -239,6 +239,8 @@ lock_release (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (lock_held_by_current_thread (lock));
 
+	remove_with_lock (lock);    /* donations에서 lock을 acquire한 element 삭제 */ 
+	refresh_priority ();	    /* donation list resort 및 lockholder와의 우선순위 비교평가 후 priority 재조정*/
 	lock->holder = NULL;
 	sema_up (&lock->semaphore);
 }

@@ -15,6 +15,8 @@
 #include "userprog/process.h"
 #endif
 
+#define DONATE_MAX_DEPTH 8
+
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
@@ -389,6 +391,12 @@ void thread_awake(int64_t curr_tick) {
 bool thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
 	return list_entry (a, struct thread, elem)->priority > list_entry (b, struct thread, elem)->priority;
 }
+/* thread 구조체 멤버를 인자로 넣고 또다른 멤버인 priority 값 비교*/
+bool thread_compare_donate_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
+{
+	return list_entry(a, struct thread, donation_elem)->priority
+			> list_entry (b, struct thread, donation_elem)->priority;
+}
 
 void
 /* ready_list에서 가장 높은 우선순위를 가진 스레드(head)가 현재 current_thread(CPU 점유중인)인 스레드보다 높으면
@@ -401,12 +409,54 @@ test_max_priority (void) {
 	}
 }
 
+/* lock holder의 priority를 변경하는 목적의 함수 list donation의 element의 값 중 최우선 값으로 변경되야한다.*/
+void donate_priority (void)
+{
+	int depth;
+	struct thread *cur = thread_current ();
+	
+	for (depth = 0; depth <DONATE_MAX_DEPTH; depth++){
+		if (!cur->wait_on_lock)
+		 break;
+		struct thread *holder = cur->wait_on_lock->holder;
+		holder->priority = cur->priority;
+		cur = holder;
+	}
+}
 
+/*lock holder가 관리하는 donations라는 list에서 해당 lock의 waiter를 삭제한다.*/
+void remove_with_lock (struct lock *lock)
+{
+	struct list_elem *e;
+	struct thread *cur = thread_current ();
+
+	for (e = list_begin (&cur->donations); e != list_end (&cur->donations); e = list_next (e)){
+		struct thread *t = list_entry (e, struct thread, donation_elem);
+		if (t->wait_on_lock == lock) /* holder가 몇 가지의 lock을 소지하고 있을 수도 있기 때문에 if문 사용 */
+			list_remove (&t->donation_elem);
+	}
+}
+
+void refresh_priority (void)
+{
+	struct thread *cur = thread_current ();
+	cur->priority = cur->init_priority;
+
+	/*priority가 재설정된 member가 있을 수 있기 때문에 sort를 진행한다.*/
+	if (!list_empty (&cur->donations)) {
+		list_sort (&cur->donations, thread_compare_donate_priority, 0);
+	struct thread *front = list_entry (list_front (&cur->donations), struct thread, donation_elem);
+	if (front -> priority > cur -> priority)  /*donation list 중 highest priority와 current priority와 비교 후에 현재 priority를 재설정 한다.*/
+		cur->priority = front->priority;
+	}
+}
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
+/* priority의 변경 점이 생기면, potentially 영향 받을 수 있는 list의 값들이 re sort 될 필요가 있다.*/
 void
 thread_set_priority (int new_priority) {
-	thread_current ()->priority = new_priority;
+	thread_current ()->init_priority = new_priority;
+	refresh_priority ();   
 	test_max_priority();
 }
 
