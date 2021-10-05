@@ -408,7 +408,9 @@ thread_compare_donate_priority (const struct list_elem *a, const struct list_ele
 // 즉, 스레드를 새로 생성하는 함수인 thread_create에서 현재 스레드의 우선순위를 재조정하는 thread_set_priority() 내부에 test_max_priority()를 추가
 void
 test_max_priority (void) {
-	if (!list_empty (&ready_list) && thread_current()->priority < list_entry(list_front(&ready_list), struct thread, elem)->priority){
+	if (!intr_context() 
+		&& !list_empty (&ready_list) 
+		&& thread_current()->priority < list_entry(list_front(&ready_list), struct thread, elem)->priority){
 		thread_yield();
 	}
 }
