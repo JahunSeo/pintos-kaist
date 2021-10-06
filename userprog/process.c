@@ -343,22 +343,24 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 	process_activate (thread_current ());
 
-
 	/* 1차로 argument parsing
 		- file_name에서 인자들을 '\0'으로 구분
 		- file_name에서 첫 번째 token으로 file 실행
 		- file_name을 argument_stack의 첫번째 인자로 전달
 	*/
+	char *argv[64]; // string literal 주소값들의 배열
+	int argc = 0;
+ 
 	char *token, *save_ptr;
-	int count = 0;
-	printf("[load] file_name %d, %s\n", count, file_name);
+	printf("[load] file_name %d, %s\n", argc, file_name);
 	for (token = strtok_r(file_name, " ", &save_ptr); 
 		token != NULL;
 		token = strtok_r(NULL, " ", &save_ptr)) {
-			printf("'%s'\n", token);
-			count++;
+			argv[argc] = token;
+			printf("'%s'\n", argv[argc]);
+			argc++;
 	}
-	printf("[load] file_name %d, %s\n", count, file_name);
+	printf("[load] file_name %d, %s\n", argc, file_name);
 
 	/* Open executable file. */
 	file = filesys_open (file_name);
@@ -456,7 +458,7 @@ done:
 	- count: 인자의 개수
 	- esp: 스택 포인터를 가리키는 주소 값
 */
-void argument_stack(char **parse, int count, void **esp) {
+void argument_stack(char **argv, int argc, struct intr_frame *if_) {
 	/* 프로그램 이름 및 인자(문자열) push */
 	/* 프로그램 이름 및 인자 주소들 push */
 	/* argv (문자열을 가리키는 주소들의 배열을 가리킴) push*/ /* argc (문자열의 개수 저장) push */
