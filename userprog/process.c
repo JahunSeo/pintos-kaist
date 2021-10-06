@@ -181,16 +181,6 @@ process_exec (void *f_name) {
 	/* We first kill the current context */
 	process_cleanup ();
 
-	/* argument parsing: parsing 위치를 어디로 잡아야 좋을까? */
-	printf("[process_exec] file_name %s\n", file_name);
-	char *token, *save_ptr;
-
-	for (token = strtok_r(file_name, " ", &save_ptr); token != NULL;
-		token = strtok_r(NULL, " ", &save_ptr)) {
-			printf("'%s'\n", token);
-	}
-	printf("[process_exec] file_name %s\n", file_name);
-
 	/* And then load the binary */
 	success = load (file_name, &_if);
 
@@ -352,6 +342,16 @@ load (const char *file_name, struct intr_frame *if_) {
 	if (t->pml4 == NULL)
 		goto done;
 	process_activate (thread_current ());
+
+
+	/* argument parsing: parsing 위치를 어디로 잡아야 좋을까? */
+	printf("[load] file_name %s\n", file_name);
+	char *token, *save_ptr;
+	for (token = strtok_r(file_name, " ", &save_ptr); token != NULL;
+		token = strtok_r(NULL, " ", &save_ptr)) {
+			printf("'%s'\n", token);
+	}
+	printf("[load] file_name %s\n", file_name);
 
 	/* Open executable file. */
 	file = filesys_open (file_name);
