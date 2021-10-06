@@ -344,14 +344,21 @@ load (const char *file_name, struct intr_frame *if_) {
 	process_activate (thread_current ());
 
 
-	/* argument parsing: parsing 위치를 어디로 잡아야 좋을까? */
-	printf("[load] file_name %s\n", file_name);
+	/* 1차로 argument parsing
+		- file_name에서 인자들을 '\0'으로 구분
+		- file_name에서 첫 번째 token으로 file 실행
+		- file_name을 argument_stack의 첫번째 인자로 전달
+	*/
 	char *token, *save_ptr;
-	for (token = strtok_r(file_name, " ", &save_ptr); token != NULL;
+	int count = 0;
+	printf("[load] file_name %d, %s\n", count, file_name);
+	for (token = strtok_r(file_name, " ", &save_ptr); 
+		token != NULL;
 		token = strtok_r(NULL, " ", &save_ptr)) {
 			printf("'%s'\n", token);
+			count++;
 	}
-	printf("[load] file_name %s\n", file_name);
+	printf("[load] file_name %d, %s\n", count, file_name);
 
 	/* Open executable file. */
 	file = filesys_open (file_name);
