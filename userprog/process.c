@@ -176,6 +176,16 @@ process_exec (void *f_name) {
 	/* We first kill the current context */
 	process_cleanup ();
 
+	/* argument parsing: parsing 위치를 어디로 잡아야 좋을까? */
+	printf("[process_exec] file_name %s\n", file_name);
+	char *token, *save_ptr;
+
+	for (token = strtok_r(file_name, " ", &save_ptr); token != NULL;
+		token = strtok_r(NULL, " ", &save_ptr)) {
+			printf("'%s'\n", token);
+	}
+	printf("[process_exec] file_name %s\n", file_name);
+
 	/* And then load the binary */
 	success = load (file_name, &_if);
 
@@ -188,7 +198,6 @@ process_exec (void *f_name) {
 	do_iret (&_if);
 	NOT_REACHED ();
 }
-
 
 /* Waits for thread TID to die and returns its exit status.  If
  * it was terminated by the kernel (i.e. killed due to an
@@ -204,6 +213,10 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+
+	// printf("[process_wait] infinite loop\n");
+	// while(1);
+	thread_sleep(150);
 	return -1;
 }
 
