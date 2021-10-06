@@ -443,7 +443,7 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
-
+	argument_stack(argv, argc, if_);
 	success = true;
 
 done:
@@ -458,11 +458,26 @@ done:
 	- count: 인자의 개수
 	- esp: 스택 포인터를 가리키는 주소 값
 */
-void argument_stack(char **argv, int argc, struct intr_frame *if_) {
+void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
+	printf("[argument_stack] %d, %x\n", argc, if_->rsp); // 0x47480000
+	uintptr_t rsp = if_->rsp;
 	/* 프로그램 이름 및 인자(문자열) push */
+	for (int i = argc-1; i >= 0; i--) {
+		printf("  argv[%d] %d, %s\n", i, strlen(argv[i]), argv[i]);
+		rsp -= strlen(argv[i]) + 1; // '\0'을 위해 추가
+		memcpy((char *) rsp, argv[i], strlen(argv[i]) + 1);
+		printf("  result: %x, %s\n", rsp, rsp);
+	}
+	/* word alignment push */
+	while (rsp % 8 != 0) {
+		rsp--;
+	}
+
+
 	/* 프로그램 이름 및 인자 주소들 push */
 	/* argv (문자열을 가리키는 주소들의 배열을 가리킴) push*/ /* argc (문자열의 개수 저장) push */
 	/* fake address(0) 저장 */
+	if_->rsp = rsp;
 }
 
 /* Checks whether PHDR describes a valid, loadable segment in
