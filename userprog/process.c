@@ -50,6 +50,11 @@ process_create_initd (const char *file_name) {
 		return TID_ERROR;
 	strlcpy (fn_copy, file_name, PGSIZE);
 
+	/* 새로 생성되는 thread의 이름을 실행하려는 프로그램명으로 수정 */
+	char *save_ptr;
+	file_name = strtok_r(file_name, " ", &save_ptr);
+	// printf("[process_create_initd] %s\n", file_name);
+
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
 	if (tid == TID_ERROR)
