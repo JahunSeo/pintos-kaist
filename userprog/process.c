@@ -443,6 +443,18 @@ done:
 	return success;
 }
 
+/*
+	실행할 파일의 stack(esp)에 인자를 전달하는 함수
+	- parse: 프로그램 이름과 인자가 저장되어 있는 메모리 공간
+	- count: 인자의 개수
+	- esp: 스택 포인터를 가리키는 주소 값
+*/
+void argument_stack(char **parse, int count, void **esp) {
+	/* 프로그램 이름 및 인자(문자열) push */
+	/* 프로그램 이름 및 인자 주소들 push */
+	/* argv (문자열을 가리키는 주소들의 배열을 가리킴) push*/ /* argc (문자열의 개수 저장) push */
+	/* fake address(0) 저장 */
+}
 
 /* Checks whether PHDR describes a valid, loadable segment in
  * FILE and returns true if so, false otherwise. */
