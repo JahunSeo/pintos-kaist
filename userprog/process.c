@@ -504,10 +504,10 @@ void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
 	printf("  fake address: %p, %p\n", (char *)rsp, *(char **)rsp);
 
 	if_->rsp = rsp;
-	/* argv (문자열을 가리키는 주소들의 배열을 가리킴) push*/ 
-	
 	/* argc (문자열의 개수 저장) push */
-
+	if_->R.rdi = argc;
+	/* argv (문자열을 가리키는 주소들의 배열을 가리킴) push*/ 
+	if_->R.rsi = rsp - sizeof(char *) // fake return address 위치를 빼주어야 함
 }
 
 /* Checks whether PHDR describes a valid, loadable segment in
