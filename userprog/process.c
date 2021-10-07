@@ -459,20 +459,25 @@ done:
 	- esp: 스택 포인터를 가리키는 주소 값
 */
 void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
-	printf("[argument_stack] %d, %x\n", argc, if_->rsp); // 0x47480000
+	printf("[argument_stack] %d, %llx\n", argc, if_->rsp); // 0x47480000
 	uintptr_t rsp = if_->rsp;
 	/* 프로그램 이름 및 인자(문자열) push */
 	for (int i = argc-1; i >= 0; i--) {
-		printf("  argv[%d] %d, %s\n", i, strlen(argv[i]), argv[i]);
+		printf("  argv[%d] %ld, %s\n", i, strlen(argv[i]), (uint8_t *) argv[i]);
 		rsp -= strlen(argv[i]) + 1; // '\0'을 위해 추가
-		memcpy((char *) rsp, argv[i], strlen(argv[i]) + 1);
-		printf("  result: %x, %s\n", rsp, rsp);
+		memcpy((uint8_t *) rsp, argv[i], strlen(argv[i]) + 1);
+		printf("  argument: %llx, %s\n", rsp, (uint8_t *) rsp);
 	}
-	/* word alignment push */
+	/* word alignment push
+		- 현재 rsp 위치까지 데이터가 차 있음
+		- rsp의 바로 아래 byte부터 rsp % 8개 만큼 0으로 채우면 8byte 패딩을 만들 수 있음
+		- stack bottom (7,6,5==rsp,0,0,0,0,0)
+	 */
 	while (rsp % 8 != 0) {
 		rsp--;
+		*(uint8_t *)rsp = (uint8_t)0; // rsp는 그냥 interger이기 때문에, 먼저 1byte 주소값으로 casting을 해줘야 함
+		printf("  padding: %llx, %c\n", rsp, *(uint8_t *) rsp);
 	}
-
 
 	/* 프로그램 이름 및 인자 주소들 push */
 	/* argv (문자열을 가리키는 주소들의 배열을 가리킴) push*/ /* argc (문자열의 개수 저장) push */
