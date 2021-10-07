@@ -356,7 +356,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	for (token = strtok_r(file_name, " ", &save_ptr); 
 		token != NULL;
 		token = strtok_r(NULL, " ", &save_ptr)) {
-			argv[argc] = token;
+			argv[argc] = (char *) token;
 			printf("'%s'\n", argv[argc]);
 			argc++;
 	}
@@ -463,10 +463,11 @@ void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
 	uintptr_t rsp = if_->rsp;
 	/* 프로그램 이름 및 인자(문자열) push */
 	for (int i = argc-1; i >= 0; i--) {
-		printf("  argv[%d] %ld, %s\n", i, strlen(argv[i]), (uint8_t *) argv[i]);
-		rsp -= strlen(argv[i]) + 1; // '\0'을 위해 추가
-		memcpy((uint8_t *) rsp, argv[i], strlen(argv[i]) + 1);
-		printf("  argument: %llx, %s\n", rsp, (uint8_t *) rsp);
+		printf("  argv[%d] %ld, %s\n", i, strlen(argv[i]), (char *) argv[i]);
+		rsp -= strlen(argv[i]) + 1; // rsp를 이동시켜 공간을 확보, '\0'을 위해 추가
+		memcpy((char *) rsp, argv[i], strlen(argv[i]) + 1); // 확보된 공간에 문자열 추가
+		argv[i] = (char *) rsp; // 스택에 추가된 문자열의 주소값을 보관 (argv 재활용)
+		printf("  argument: %llx, %s, %s\n", rsp, (char *) rsp, argv[i]);
 	}
 	/* word alignment push
 		- 현재 rsp 위치까지 데이터가 차 있음
@@ -475,11 +476,13 @@ void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
 	 */
 	while (rsp % 8 != 0) {
 		rsp--;
-		*(uint8_t *)rsp = (uint8_t)0; // rsp는 그냥 interger이기 때문에, 먼저 1byte 주소값으로 casting을 해줘야 함
-		printf("  padding: %llx, %c\n", rsp, *(uint8_t *) rsp);
+		*(char *)rsp = (char)0; // rsp는 그냥 interger이기 때문에, 먼저 1byte 주소값으로 casting을 해줘야 함
+		printf("  padding: %llx, %c\n", rsp, *(char *) rsp);
 	}
 
 	/* 프로그램 이름 및 인자 주소들 push */
+
+
 	/* argv (문자열을 가리키는 주소들의 배열을 가리킴) push*/ /* argc (문자열의 개수 저장) push */
 	/* fake address(0) 저장 */
 	if_->rsp = rsp;
