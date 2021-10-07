@@ -459,7 +459,7 @@ done:
 	- esp: 스택 포인터를 가리키는 주소 값
 */
 void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
-	printf("[argument_stack] %d, %llx\n", argc, if_->rsp); // 0x47480000
+	printf("[argument_stack] %d, %p\n", argc, if_->rsp); // 0x47480000
 	uintptr_t rsp = if_->rsp;
 	/* 프로그램 이름 및 인자(문자열) push */
 	for (int i = argc-1; i >= 0; i--) {
@@ -467,8 +467,9 @@ void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
 		rsp -= strlen(argv[i]) + 1; // rsp를 이동시켜 공간을 확보, '\0'을 위해 추가
 		memcpy((char *) rsp, argv[i], strlen(argv[i]) + 1); // 확보된 공간에 문자열 추가
 		argv[i] = (char *) rsp; // 스택에 추가된 문자열의 주소값을 보관 (argv 재활용)
-		printf("  argument: %llx, %s, %s\n", rsp, (char *) rsp, argv[i]);
+		printf("  argument: %p, %s, %p\n", rsp, (char *) rsp, (char *) argv[i]);
 	}
+
 	/* word alignment push
 		- 현재 rsp 위치까지 데이터가 차 있음
 		- rsp의 바로 아래 byte부터 rsp % 8개 만큼 0으로 채우면 8byte 패딩을 만들 수 있음
@@ -476,11 +477,27 @@ void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
 	 */
 	while (rsp % 8 != 0) {
 		rsp--;
-		*(char *)rsp = (char)0; // rsp는 그냥 interger이기 때문에, 먼저 1byte 주소값으로 casting을 해줘야 함
-		printf("  padding: %llx, %c\n", rsp, *(char *) rsp);
+		// rsp는 그냥 interger이기 때문에, 먼저 1byte 주소값으로 casting을 해준 뒤 역변환을 통해 그 byte 자리에 0을 넣음
+		*(char *)rsp = (char)0; 
+		printf("  padding: %p, %c\n", rsp, *(char *) rsp);
 	}
 
 	/* 프로그램 이름 및 인자 주소들 push */
+	// 포인터의 크기 계산
+	size_t PTR_SIZE = sizeof(char *);
+	printf("  size of pointer: %ld\n", PTR_SIZE);
+	// argv[argc] 위치에 0 삽입
+	rsp -= PTR_SIZE;
+	*(char *)rsp = 0;
+	// argv[0] ~ argv[argc-1]에 각 문자열의 주소값 저장
+	for (int j=argc-1; j>=0; j--) {
+		rsp -= PTR_SIZE;
+		// 여기서 *(char *) 로 처리하면 에러 발생! 왜? 8byte가 아닌 1byte로 처리되기 때문
+		// rsp부터 sizeof(char *) 크기 만큼, 즉 주소값 크기 만큼의 자리에 argv[j]를 넣겠다는 의미
+		// 여기서 rsp는 (char *)에 대한 주소값이므로, *(char **)
+		*(char **)rsp = argv[j]; 
+		printf("  at %p, %p (%p)\n", rsp, *(char **)rsp, (char *) argv[j]);
+	}
 
 
 	/* argv (문자열을 가리키는 주소들의 배열을 가리킴) push*/ /* argc (문자열의 개수 저장) push */
