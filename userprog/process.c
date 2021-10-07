@@ -459,7 +459,7 @@ done:
 	- esp: 스택 포인터를 가리키는 주소 값
 */
 void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
-	printf("[argument_stack] %d, %p\n", argc, if_->rsp); // 0x47480000
+	printf("[argument_stack] %d, %p\n", argc, (char *) if_->rsp); // 0x47480000
 	uintptr_t rsp = if_->rsp;
 	/* 프로그램 이름 및 인자(문자열) push */
 	for (int i = argc-1; i >= 0; i--) {
@@ -467,7 +467,7 @@ void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
 		rsp -= strlen(argv[i]) + 1; // rsp를 이동시켜 공간을 확보, '\0'을 위해 추가
 		memcpy((char *) rsp, argv[i], strlen(argv[i]) + 1); // 확보된 공간에 문자열 추가
 		argv[i] = (char *) rsp; // 스택에 추가된 문자열의 주소값을 보관 (argv 재활용)
-		printf("  argument: %p, %s, %p\n", rsp, (char *) rsp, (char *) argv[i]);
+		printf("  argument: %p, %s, %p\n", (char *) rsp, (char *) rsp, (char *) argv[i]);
 	}
 
 	/* word alignment push
@@ -478,8 +478,8 @@ void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
 	while (rsp % 8 != 0) {
 		rsp--;
 		// rsp는 그냥 interger이기 때문에, 먼저 1byte 주소값으로 casting을 해준 뒤 역변환을 통해 그 byte 자리에 0을 넣음
-		*(char *)rsp = (char)0; 
-		printf("  padding: %p, %c\n", rsp, *(char *) rsp);
+		*(char *)rsp = (char)0; // 여기서는 1byte
+		printf("  padding: %p, %c\n", (char *)rsp, *(char *) rsp);
 	}
 
 	/* 프로그램 이름 및 인자 주소들 push */
@@ -488,7 +488,7 @@ void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
 	printf("  size of pointer: %ld\n", PTR_SIZE);
 	// argv[argc] 위치에 0 삽입
 	rsp -= PTR_SIZE;
-	*(char *)rsp = 0;
+	*(char **)rsp = (char *)0; // 여기서는 8 bytes
 	// argv[0] ~ argv[argc-1]에 각 문자열의 주소값 저장
 	for (int j=argc-1; j>=0; j--) {
 		rsp -= PTR_SIZE;
@@ -496,13 +496,18 @@ void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
 		// rsp부터 sizeof(char *) 크기 만큼, 즉 주소값 크기 만큼의 자리에 argv[j]를 넣겠다는 의미
 		// 여기서 rsp는 (char *)에 대한 주소값이므로, *(char **)
 		*(char **)rsp = argv[j]; 
-		printf("  at %p, %p (%p)\n", rsp, *(char **)rsp, (char *) argv[j]);
+		printf("  at %p, %p (%p)\n", (char *)rsp, *(char **)rsp, (char *) argv[j]);
 	}
-
-
-	/* argv (문자열을 가리키는 주소들의 배열을 가리킴) push*/ /* argc (문자열의 개수 저장) push */
 	/* fake address(0) 저장 */
+	rsp -= PTR_SIZE;
+	*(char **)rsp = (char *)0; // 여기서도 8 bytes
+	printf("  fake address: %p, %p\n", (char *)rsp, *(char **)rsp);
+
 	if_->rsp = rsp;
+	/* argv (문자열을 가리키는 주소들의 배열을 가리킴) push*/ 
+	
+	/* argc (문자열의 개수 저장) push */
+
 }
 
 /* Checks whether PHDR describes a valid, loadable segment in
