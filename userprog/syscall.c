@@ -66,10 +66,10 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		break;
 	
 	case SYS_HALT:
-		printf("Fuck\n");
+		halt();
 		break;	
 	case SYS_EXIT:
-		thread_exit();
+		exit(f->R.rdi);
 		break;
 	default:
 		break;
@@ -82,4 +82,28 @@ syscall_handler (struct intr_frame *f UNUSED) {
 int write(int fd, const void *buffer, unsigned size)
 {
 	putbuf(buffer, size);
+}
+
+
+void exit(int status)
+{
+	struct thread *cur = thread_current();
+	// cur->exit_stat = status;
+
+	printf("%s: exit(%d)\n", thread_name(), status); // Process Termination Message
+	thread_exit();
+}
+
+
+void is_useradd(const uint64_t *uaddr)
+{
+	if (uaddr == NULL || !(is_user_vaddr(uaddr)))
+	{
+		exit(-1);
+	}
+}
+
+void halt(void)
+{
+	power_off();
 }
