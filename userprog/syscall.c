@@ -8,6 +8,7 @@
 #include "threads/flags.h"
 #include "intrinsic.h"
 #include "threads/init.h"
+#include "include/filesys/filesys.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -29,7 +30,7 @@ void syscall_handler (struct intr_frame *);
 void _halt (void);
 void _exit (int status);
 int _write (int fd, const void *buffer, unsigned size);
-
+bool _create (const char *file, unsigned initial_size);
 
 void
 syscall_init (void) {
@@ -55,59 +56,61 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			// printf("  SYS_HALT called!\n");
 			_halt ();
 			break;
+
 		case SYS_EXIT:				  	 /* Terminate this process. */
 			// printf("  SYS_EXIT called!\n");
 			_exit (f->R.rdi);
 			break;
 
 		case SYS_FORK:                   /* Clone current process. */
-			printf("  SYS_FORK called!\n");
+			// printf("  SYS_FORK called!\n");
 			break;
 
 		case SYS_EXEC:                   /* Switch current process. */
-			printf("  SYS_EXEC called!\n");
+			// printf("  SYS_EXEC called!\n");
 			break;
 
 		case SYS_WAIT:                   /* Wait for a child process to die. */
-			printf("  SYS_WAIT called!\n");
+			// printf("  SYS_WAIT called!\n");
 			break;
 
 		case SYS_CREATE:                 /* Create a file. */
-			printf("  SYS_CREATE called!\n");
+			// printf("  SYS_CREATE called!\n");
+			f->R.rax = _create((char *) f->R.rdi, f->R.rsi);
 			break;
 
 		case SYS_REMOVE:                 /* Delete a file. */
-			printf("  SYS_REMOVE called!\n");
+			// printf("  SYS_REMOVE called!\n");
 			break;
 
 		case SYS_OPEN:                   /* Open a file. */
-			printf("  SYS_OPEN called!\n");
+			// printf("  SYS_OPEN called!\n");
 			break;
 
 		case SYS_FILESIZE:               /* Obtain a file's size. */
-			printf("  SYS_FILESIZE called!\n");
+			// printf("  SYS_FILESIZE called!\n");
 			break;
 
 		case SYS_READ:                   /* Read from a file. */
-			printf("  SYS_READ called!\n");
+			// printf("  SYS_READ called!\n");
 			break;
 
 		case SYS_WRITE:                  /* Write to a file. */
 			// printf("  SYS_WRITE called!\n");
-			f->R.rax = _write(f->R.rdi, f->R.rsi, f->R.rdx);
+			f->R.rax = _write(f->R.rdi, (char *) f->R.rsi, f->R.rdx);
 			// power_off ();
 			break;
 
 		case SYS_SEEK:                   /* Change position in a file. */
-			printf("  SYS_HALT called!\n");
+			// printf("  SYS_HALT called!\n");
 			break;
 
 		case SYS_TELL:                   /* Report current position in a file. */
-			printf("  SYS_TELL called!\n");
+			// printf("  SYS_TELL called!\n");
 			break;
 
 		case SYS_CLOSE:                  /* Close a file. */
-			printf("  SYS_CLOSE called!\n");
+			// printf("  SYS_CLOSE called!\n");
 			break;
 
 		default:
@@ -127,8 +130,13 @@ void _exit (int status) {
 	thread_exit ();
 }
 
+bool _create (const char *file, unsigned initial_size) {
+	// TODO: file NAME address check
+	return filesys_create(file, initial_size);
+}
 
 int _write (int fd, const void *buffer, unsigned size) {
+	// temporary code to pass args related test case
 	putbuf(buffer, size);
 	return size;
 }
