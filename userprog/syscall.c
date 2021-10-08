@@ -26,6 +26,7 @@ void syscall_handler (struct intr_frame *);
 #define MSR_LSTAR 0xc0000082        /* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 
+void check_address(const char *addr);
 
 void _halt (void);
 void _exit (int status);
@@ -121,6 +122,20 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	// printf("[syscall_handler] end   : %lld \n", f->R.rax);
 }
 
+/* system call에 인자로 들어온 주소값의 유효성을 검사 
+	- a null pointer, 
+	- a pointer to unmapped virtual memory, 
+	- or a pointer to kernel virtual address space (above KERN_BASE)
+*/
+void check_address(const char *uaddr) {
+	struct thread *curr = thread_current();
+	if (uaddr == NULL 
+		|| !is_user_vaddr(uaddr) 
+		|| pml4_get_page(curr->pml4, uaddr) == NULL) {
+			_exit(-1);
+		}
+}
+
 void _halt (void) {
 	power_off();
 }
@@ -131,7 +146,7 @@ void _exit (int status) {
 }
 
 bool _create (const char *file, unsigned initial_size) {
-	// TODO: file NAME address check
+	check_address(file);
 	return filesys_create(file, initial_size);
 }
 
