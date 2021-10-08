@@ -141,7 +141,7 @@ void _halt (void) {
 }
 
 void _exit (int status) {
-	printf("%s: exit(%d)\n", thread_name(), status);
+	printf("%s: exit(%d)\n", thread_name(), status); // TODO: this line should be relocated in precess_exit
 	thread_exit ();
 }
 
