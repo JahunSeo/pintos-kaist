@@ -25,6 +25,10 @@ void syscall_handler (struct intr_frame *);
 #define MSR_LSTAR 0xc0000082        /* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 
+
+int _write (int fd, const void *buffer, unsigned size);
+
+
 void
 syscall_init (void) {
 	write_msr(MSR_STAR, ((uint64_t)SEL_UCSEG - 0x10) << 48  |
@@ -42,14 +46,13 @@ syscall_init (void) {
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
-	printf("[syscall_handler] start : %lld, (%lld, %lld, %lld, %lld, %lld, %lld)\n", 
-		f->R.rax, f->R.rdi,f->R.rsi,f->R.rdx,f->R.r10,f->R.r8,f->R.r9);
+	// printf("[syscall_handler] start : %lld, (%lld, %lld, %lld, %lld, %lld, %lld)\n", 
+		// f->R.rax, f->R.rdi,f->R.rsi,f->R.rdx,f->R.r10,f->R.r8,f->R.r9);
 	switch(f->R.rax) {
 		case SYS_HALT:                   /* Halt the operating system. */
 			printf("  SYS_HALT called!\n");
 			power_off ();
 			break;
-
 		case SYS_EXIT:				  	 /* Terminate this process. */
 			printf("  SYS_EXIT called!\n");
 			break;
@@ -87,7 +90,8 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 
 		case SYS_WRITE:                  /* Write to a file. */
-			printf("  SYS_WRITE called!\n");
+			// printf("  SYS_WRITE called!\n");
+			f->R.rax = _write(f->R.rdi,f->R.rsi,f->R.rdx);
 			// power_off ();
 			break;
 
@@ -108,7 +112,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	}
 
 
-	printf("[syscall_handler] end   : %lld \n", f->R.rax);
+	// printf("[syscall_handler] end   : %lld \n", f->R.rax);
+	// thread_exit ();
+}
 
-	thread_exit ();
+
+int _write (int fd, const void *buffer, unsigned size) {
+	putbuf(buffer, size);
+	return size;
 }
