@@ -360,7 +360,7 @@ load (const char *file_name, struct intr_frame *if_) {
 			// printf("'%s'\n", argv[argc]);
 			argc++;
 	}
-	printf("[load] file_name %d, %s\n", argc, file_name);
+	// printf("[load] file_name %d, %s\n", argc, file_name);
 
 	/* Open executable file. */
 	file = filesys_open (file_name);
@@ -444,7 +444,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
 	argument_stack(argv, argc, if_);
-	hex_dump(if_->rsp, if_->rsp, USER_STACK - if_->rsp, true); 
+	// hex_dump(if_->rsp, if_->rsp, USER_STACK - if_->rsp, true); 
 	success = true;
 
 done:
@@ -508,7 +508,7 @@ void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
 	/* argc (문자열의 개수 저장) push */
 	if_->R.rdi = argc;
 	/* argv (문자열을 가리키는 주소들의 배열을 가리킴) push*/ 
-	if_->R.rsi = rsp - sizeof(char *); // fake return address 위치를 빼주어야 함
+	if_->R.rsi = rsp + PTR_SIZE; // fake return address 위치를 빼주어야 함
 }
 
 /* Checks whether PHDR describes a valid, loadable segment in

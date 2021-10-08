@@ -94,7 +94,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 		case SYS_WRITE:                  /* Write to a file. */
 			// printf("  SYS_WRITE called!\n");
-			f->R.rax = _write(f->R.rdi,f->R.rsi,f->R.rdx);
+			f->R.rax = _write(f->R.rdi, f->R.rsi, f->R.rdx);
 			// power_off ();
 			break;
 
@@ -123,6 +123,7 @@ void _halt (void) {
 }
 
 void _exit (int status) {
+	printf("%s: exit(%d)\n", thread_name(), status);
 	thread_exit ();
 }
 
