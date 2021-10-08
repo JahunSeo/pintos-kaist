@@ -26,6 +26,8 @@ void syscall_handler (struct intr_frame *);
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 
 
+void _halt (void);
+void _exit (int status);
 int _write (int fd, const void *buffer, unsigned size);
 
 
@@ -50,11 +52,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		// f->R.rax, f->R.rdi,f->R.rsi,f->R.rdx,f->R.r10,f->R.r8,f->R.r9);
 	switch(f->R.rax) {
 		case SYS_HALT:                   /* Halt the operating system. */
-			printf("  SYS_HALT called!\n");
-			power_off ();
+			// printf("  SYS_HALT called!\n");
+			_halt ();
 			break;
 		case SYS_EXIT:				  	 /* Terminate this process. */
-			printf("  SYS_EXIT called!\n");
+			// printf("  SYS_EXIT called!\n");
+			_exit (f->R.rdi);
 			break;
 
 		case SYS_FORK:                   /* Clone current process. */
@@ -113,7 +116,14 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 
 	// printf("[syscall_handler] end   : %lld \n", f->R.rax);
-	// thread_exit ();
+}
+
+void _halt (void) {
+	power_off();
+}
+
+void _exit (int status) {
+	thread_exit ();
 }
 
 

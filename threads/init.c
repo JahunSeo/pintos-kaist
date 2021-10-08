@@ -123,7 +123,7 @@ main (void) {
 
 	/* Finish up. */
 	if (power_off_when_done)
-		printf ("[main] power_off by main\n");
+		// printf ("[main] power_off by main\n");
 		power_off ();
 	thread_exit ();
 }
@@ -340,7 +340,6 @@ usage (void) {
    as long as we're running on Bochs or QEMU. */
 void
 power_off (void) {
-	printf("[power_off]\n");
 #ifdef FILESYS
 	filesys_done ();
 #endif
