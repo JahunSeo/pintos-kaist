@@ -43,9 +43,68 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
 	printf("[syscall_handler] start : %lld, (%lld, %p, %lld, %lld, %lld, %lld)\n", 
 		f->R.rax, f->R.rdi,f->R.rsi,f->R.rdx,f->R.r10,f->R.r8,f->R.r9);
-	
-	
-	printf("  %s\n", f->R.rsi);
+	switch(f->R.rax) {
+		case SYS_HALT:                   /* Halt the operating system. */
+			printf("  SYS_HALT called!\n");
+			break;
+
+		case SYS_EXIT:				  	 /* Terminate this process. */
+			printf("  SYS_EXIT called!\n");
+			break;
+
+		case SYS_FORK:                   /* Clone current process. */
+			printf("  SYS_FORK called!\n");
+			break;
+
+
+		case SYS_EXEC:                   /* Switch current process. */
+			printf("  SYS_EXEC called!\n");
+			break;
+
+		case SYS_WAIT:                   /* Wait for a child process to die. */
+			printf("  SYS_WAIT called!\n");
+			break;
+
+		case SYS_CREATE:                 /* Create a file. */
+			printf("  SYS_CREATE called!\n");
+			break;
+
+		case SYS_REMOVE:                 /* Delete a file. */
+			printf("  SYS_REMOVE called!\n");
+			break;
+
+		case SYS_OPEN:                   /* Open a file. */
+			printf("  SYS_OPEN called!\n");
+			break;
+
+		case SYS_FILESIZE:               /* Obtain a file's size. */
+			printf("  SYS_FILESIZE called!\n");
+			break;
+
+		case SYS_READ:                   /* Read from a file. */
+			printf("  SYS_READ called!\n");
+			break;
+
+		case SYS_WRITE:                  /* Write to a file. */
+			printf("  SYS_WRITE called!\n");
+			break;
+
+		case SYS_SEEK:                   /* Change position in a file. */
+			printf("  SYS_HALT called!\n");
+			break;
+
+		case SYS_TELL:                   /* Report current position in a file. */
+			printf("  SYS_TELL called!\n");
+			break;
+
+		case SYS_CLOSE:                  /* Close a file. */
+			printf("  SYS_CLOSE called!\n");
+			break;
+
+		default:
+			printf("  DEFAULT do nothing..\n");
+	}
+
 
 	printf("[syscall_handler] end   : %lld \n", f->R.rax);
 
