@@ -211,7 +211,7 @@ process_wait (tid_t child_tid UNUSED) {
 
 	// printf("[process_wait] infinite loop\n");
 	// while(1);
-	thread_sleep(150);
+	thread_sleep(500);
 	return -1;
 }
 

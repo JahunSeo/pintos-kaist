@@ -7,6 +7,7 @@
 #include "userprog/gdt.h"
 #include "threads/flags.h"
 #include "intrinsic.h"
+#include "threads/init.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -41,11 +42,12 @@ syscall_init (void) {
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
-	printf("[syscall_handler] start : %lld, (%lld, %p, %lld, %lld, %lld, %lld)\n", 
+	printf("[syscall_handler] start : %lld, (%lld, %lld, %lld, %lld, %lld, %lld)\n", 
 		f->R.rax, f->R.rdi,f->R.rsi,f->R.rdx,f->R.r10,f->R.r8,f->R.r9);
 	switch(f->R.rax) {
 		case SYS_HALT:                   /* Halt the operating system. */
 			printf("  SYS_HALT called!\n");
+			power_off ();
 			break;
 
 		case SYS_EXIT:				  	 /* Terminate this process. */
@@ -55,7 +57,6 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_FORK:                   /* Clone current process. */
 			printf("  SYS_FORK called!\n");
 			break;
-
 
 		case SYS_EXEC:                   /* Switch current process. */
 			printf("  SYS_EXEC called!\n");
