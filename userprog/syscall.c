@@ -65,6 +65,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 		case SYS_FORK:                   /* Clone current process. */
 			// printf("  SYS_FORK called!\n");
+			_fork (f->R.rdi, f);
 			break;
 
 		case SYS_EXEC:                   /* Switch current process. */
@@ -143,6 +144,11 @@ void _halt (void) {
 void _exit (int status) {
 	printf("%s: exit(%d)\n", thread_name(), status); // TODO: this line should be relocated in precess_exit
 	thread_exit ();
+}
+
+void _fork (const char* thread_name, struct intr_frame *if_) {
+	check_address(thread_name);
+	return process_fork(thread_name, if_);
 }
 
 bool _create (const char *file, unsigned initial_size) {
