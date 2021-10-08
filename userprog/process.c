@@ -485,7 +485,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	if_->R.rsi = (uint64_t)*rspp + sizeof(void*);
 	
 	success = true;
-	hex_dump(if_->rsp, if_->rsp, USER_STACK - (uint64_t)*rspp, true);
+	// hex_dump(if_->rsp, if_->rsp, USER_STACK - (uint64_t)*rspp, true);
 done:
 	/* We arrive here whether the load is successful or not. */
 	file_close (file);

@@ -11,6 +11,24 @@
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
+
+/* Projects 2 and later. */
+void halt (void) NO_RETURN;
+void exit (int status) NO_RETURN;
+// pid_t fork (const char *thread_name);
+int exec (const char *file);
+int wait (pid_t);
+bool create (const char *file, unsigned initial_size);
+bool remove (const char *file);
+int open (const char *file);
+int filesize (int fd);
+int read (int fd, void *buffer, unsigned length);
+int write (int fd, const void *buffer, unsigned length);
+void seek (int fd, unsigned position);
+unsigned tell (int fd);
+void close (int fd);
+
+
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -40,7 +58,28 @@ syscall_init (void) {
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
+
+	switch ((f->R.rax))
+	{
+	case SYS_WRITE:
+		f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
+		break;
+	
+	case SYS_HALT:
+		printf("Fuck\n");
+		break;	
+	case SYS_EXIT:
+		thread_exit();
+		break;
+	default:
+		break;
+	}
 	// TODO: Your implementation goes here.
-	printf ("system call!\n");
-	thread_exit ();
+	// printf ("system call!\n");
+	// thread_exit ();
+}
+
+int write(int fd, const void *buffer, unsigned size)
+{
+	putbuf(buffer, size);
 }
