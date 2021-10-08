@@ -88,6 +88,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 		case SYS_WRITE:                  /* Write to a file. */
 			printf("  SYS_WRITE called!\n");
+			// power_off ();
 			break;
 
 		case SYS_SEEK:                   /* Change position in a file. */
