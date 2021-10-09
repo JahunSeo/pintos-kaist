@@ -585,9 +585,12 @@ init_thread (struct thread *t, const char *name, int priority) {
 	// donation 관련 멤버 초기 설정
 	t->init_priority = priority;  // 변하지 않고, 변경된 priority를 되돌릴 때 사용됨
 	t->wait_on_lock = NULL;	       
-	list_init (&t->donations);    
+	list_init (&t->donations); 
 	list_init (&t->child_list);
 	sema_init (&t->fork_sema, 0);
+	sema_init (&t->free_sema, 0);
+	sema_init (&t->wait_sema, 1);
+	
 
 }
 

@@ -68,14 +68,15 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	
 	case SYS_HALT:
 		halt();
-		break;	
+		break;
+		
 	case SYS_EXIT:
 		exit(f->R.rdi);
 		break;
 	
-	// case SYS_WAIT:
-	// 	f->R.rax = process_wait(f->R.rdi);
-	// 	break
+	case SYS_WAIT:
+		f->R.rax = process_wait(f->R.rdi);
+		break;
 
 	case SYS_FORK:
 		f->R.rax = fork(f->R.rdi, f);
@@ -98,7 +99,7 @@ int write(int fd, const void *buffer, unsigned size)
 void exit(int status)
 {
 	struct thread *cur = thread_current();
-	cur->exit_status = status;
+	cur->exit_status = status;    // kernal이 exit 하는 경우에도 이쪽 route 탄다.
 
 	printf("%s: exit(%d)\n", thread_name(), status); // Process Termination Message
 	thread_exit();

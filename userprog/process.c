@@ -96,7 +96,7 @@ process_fork (const char *name, struct intr_frame *if_ ) {
 	
 	struct thread *child = get_child_with_pid(tid);
 	sema_down(&child->fork_sema);
-	if (child->exit_status == -1)
+	if (child->exit_status == -1)  /*child 가 kernal 에 의해 종료된 case*/
 		return TID_ERROR;
 	return tid;
 }
@@ -293,8 +293,23 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-	thread_sleep(200);
-	return -1;
+
+	// 구현1. DIRECT CHILD 여부 확인. 아니면 return -1
+	// 구현2. parent's waiting
+	// 구현3. 최종 RETURN 값 확인. 이미 종료된 CASE에서 RETURN STATUS 반환.
+	// 구현4. RESOURCE 반환여부 확인.
+
+	/*1*/
+	struct thread *child = get_child_with_pid(child_tid);
+	if (child  == NULL)  
+		return -1;
+	
+	sema_down(&child->wait_sema);
+	int exit_status = child->exit_status;   // 종료한 child exit status 회수
+	list_remove(&child->child_elem);          
+	sema_up(&child->free_sema);     
+
+	return child->exit_status;   /*exit process에 terminate status update 필요*/
 }
 
 /* Exit the process. This function is called by thread_exit (). */
@@ -306,7 +321,12 @@ process_exit (void) {
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
-	process_cleanup ();
+
+	process_cleanup ();  /*page table 등 process resource 반납*/
+
+	sema_up(&curr->wait_sema);
+	sema_down(&curr->free_sema);
+
 }
 
 /* Free the current process's resources. */
