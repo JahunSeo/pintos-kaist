@@ -11,6 +11,7 @@
 #include "include/filesys/filesys.h"
 // added
 #include "userprog/process.h"
+#include "threads/palloc.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -160,17 +161,20 @@ int _exec (const char *file_name) {
 	check_address(file_name);
 
 	/* Make a copy of FILE_NAME.
-	 * Otherwise there's a race between the caller and load(). */
+	 * Otherwise there's a race between the caller and load().
+		- process_exec에서도 실패 시 palloc_free_page (file_name) 을 실행하기 때문에 
+		- palloc으로 생성해주어야 함
+	*/
 	char *fn_copy;
-	fn_copy = palloc_get_page (0);
+	fn_copy = palloc_get_page (PAL_ZERO);
 	if (fn_copy == NULL)
 		return TID_ERROR;
-	printf("[_exec] before copy %s, %s\n", file_name, fn_copy);
-	strlcpy (fn_copy, file_name, PGSIZE);
-	printf("[_exec] after copy %s\n", fn_copy);
+	printf("[_exec] before copy %d, %s // %p\n", strlen(file_name), file_name, fn_copy);
+	strlcpy (fn_copy, file_name, strlen(file_name) + 1);
+	printf("[_exec] after  copy %d, %s\n", strlen(fn_copy), fn_copy);
 
 	/* 프로그램 실행 */
-	if (process_exec(fn_copy) < 0)
+	if (process_exec(&fn_copy) < 0)
 		return -1;
 	NOT_REACHED();
 }
