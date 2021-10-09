@@ -114,6 +114,7 @@ struct thread {
 			- 그러므로 child가 처음 실행되는 시점의 parent register 상태는 fork가 요청된 시점의 상태와 다를 수 있음 (그래서 parent_if에 보관해두는 것)
 			- child가 실행될 때 parent의 parent_if에서 보관된 reg 상태 정보를 가저와 본인의 reg 로 업데이트함 (즉 fork된 시점의 reg 상태)
 	 */
+	int exit_status;					/* 종료되었을 때의 상태 정보: parent가 child의 종료 상태를 확인하기 위해 사용 */
 	struct intr_frame parent_if;
 	struct semaphore fork_sema;			/* child가 생성 완료될 때까지 parent가 기다릴 수 있도록 함 // Q. 왜 lock이 아닐까? */
 
