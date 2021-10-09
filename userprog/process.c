@@ -26,6 +26,7 @@ static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
+static struct thread *get_child_process(tid_t child_tid);
 
 /* General process initializer for initd and other process. */
 static void
@@ -82,13 +83,13 @@ tid_t
 process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	/* Clone current thread to new thread.*/
 	// parent(현재 thread)의 상태를 parent_if에 보관 (나중에 child가 사용할 것)
-	struct thread *curr = thread_current()
-	memcpy(curr->parent_if, if_, sizeof(struct intr_frame));
+	struct thread *curr = thread_current();
+	memcpy(&curr->parent_if, if_, sizeof(struct intr_frame));
 	// child thread 생성 (child thread가 수행할 __do_fork와 그 함수에 전달할 인자 curr)
 	tid_t child_tid = thread_create (name, PRI_DEFAULT, __do_fork, curr);
 	if (child_tid == TID_ERROR)
 		return TID_ERROR;
-	// child_tid 로 thread 가져오기
+	// child_tid 로 thread 가져오기 (이 때는 NULL일 수 없음)
 	struct thread *child = get_child_process(child_tid);
 	// child가 생성 완료될 때까지 대기
 	sema_down(&child->fork_sema);
@@ -97,6 +98,22 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 		return TID_ERROR;
 
 	return child_tid;
+}
+
+/* children list에서 특정 child thread의 주소값 가져오기 */
+struct thread *get_child_process(tid_t child_tid) {
+	struct thread *curr = thread_current();
+	struct thread *child;
+	struct list *children = &curr->children;
+	struct list_elem *e;
+	for (e = list_begin(children); e != list_end(children); e = list_next(e)) {
+		child = list_entry(e, struct thread, child_elem);
+		if (child->tid == child_tid) {
+			return child; 
+		}
+	}
+	return NULL;
+
 }
 
 #ifndef VM

@@ -592,7 +592,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 
 	/* parent child 관계 관련 */
 	list_init(&t->children);		/* children list 생성 */
-    
+	sema_init(&t->fork_sema, 0);
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
