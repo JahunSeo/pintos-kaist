@@ -262,12 +262,16 @@ process_wait (tid_t child_tid UNUSED) {
 	thread_sleep(150*child_tid);
 	// printf("[process_wait] 2 %d\n", child_tid);
 
+
+
 	// TODO: should removes all traces of the process from the system
 
 	return child_tid;
 }
 
-/* Exit the process. This function is called by thread_exit (). */
+/* Exit the process. This function is called by thread_exit (). 
+	- 이 함수는 thread_exit 안에서 실행된다는 점 주의!!
+*/
 void
 process_exit (void) {
 	struct thread *curr = thread_current ();
@@ -277,8 +281,14 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 	process_cleanup ();
-	// temporary code
-	thread_exit();
+
+	// process가 종료되었다는 문장 출력
+	printf("%s: exit(%d)\n", thread_name(), curr->exit_status);
+	// parent가 현재 thread를 wait하고 있었다면, 종료되었음을 알림
+	// sema_up(&curr->wait_sema);
+	// parent가 현재 thread를 회수할 때까지 thread_exit하지 않고 기다림 (exit_status를 전달하기 위함)
+	// sema_down(&curr->free_sema);
+	// parent가 회수한 뒤 thread_exit의 남은 부분이 실행됨
 }
 
 /* Free the current process's resources. */

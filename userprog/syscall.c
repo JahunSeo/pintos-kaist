@@ -142,8 +142,7 @@ void _halt (void) {
 void _exit (int status) {
 	struct thread *curr = thread_current();
 	curr->exit_status = status;	
-	printf("%s: exit(%d)\n", thread_name(), status); // TODO: this line should be relocated in precess_exit
-	thread_exit (); // 이게 맞을까? process_exit을 해서 process_cleanup까지 되어야 하는 것 아닌가?
+	thread_exit();
 }
 
 int _wait (tid_t pid) {
