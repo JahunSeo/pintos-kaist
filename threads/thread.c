@@ -592,7 +592,9 @@ init_thread (struct thread *t, const char *name, int priority) {
 
 	/* parent child 관계 관련 */
 	list_init(&t->children);		/* children list 생성 */
-	sema_init(&t->fork_sema, 0);
+	sema_init(&t->fork_sema, 0);	/* parent가 down한 뒤 child(current thread)가 up */
+	sema_init(&t->wait_sema, 0);	/* parent가 down한 뒤 child(current thread)가 up */
+	sema_init(&t->free_sema, 0);	/* child(current thread)가 down한 뒤 parent가 up */
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should

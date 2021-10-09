@@ -205,8 +205,7 @@ __do_fork (void *aux) {
 error:
 	current->exit_status = TID_ERROR;
 	sema_up(&current->fork_sema);
-	process_exit();
-	// thread_exit ();
+	// thread_exit (); // thread_handler가 실행 종료되면, thread_exit()이 kernel_thread에서 실행됨 
 }
 
 /* Switch the current execution context to the f_name.
@@ -285,9 +284,9 @@ process_exit (void) {
 	// process가 종료되었다는 문장 출력
 	printf("%s: exit(%d)\n", thread_name(), curr->exit_status);
 	// parent가 현재 thread를 wait하고 있었다면, 종료되었음을 알림
-	// sema_up(&curr->wait_sema);
+	sema_up(&curr->wait_sema);
 	// parent가 현재 thread를 회수할 때까지 thread_exit하지 않고 기다림 (exit_status를 전달하기 위함)
-	// sema_down(&curr->free_sema);
+	sema_down(&curr->free_sema);
 	// parent가 회수한 뒤 thread_exit의 남은 부분이 실행됨
 }
 

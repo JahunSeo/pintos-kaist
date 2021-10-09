@@ -117,7 +117,9 @@ struct thread {
 	 */
 	int exit_status;					/* 종료되었을 때의 상태 정보: parent가 child의 종료 상태를 확인하기 위해 사용 */
 	struct intr_frame parent_if;
-	struct semaphore fork_sema;			/* child가 생성 완료될 때까지 parent가 기다릴 수 있도록 함 // Q. 왜 lock이 아닐까? */
+	struct semaphore fork_sema;			/* 현재 thread가 fork 완료되었는지 여부 // Q. 왜 lock이 아닐까? */
+	struct semaphore wait_sema;			/* 현재 thread가 parent에 의해 wait되는지 여부 */
+	struct semaphore free_sema;			/* 현재 thread가 parent에 의해 회수되었는지 여부 (회수 대상은 exit_status) */
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
