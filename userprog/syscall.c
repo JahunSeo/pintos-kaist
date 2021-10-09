@@ -145,7 +145,7 @@ void _exit (int status) {
 }
 
 int _wait (tid_t pid) {
-	printf("[_wait]\n");
+	// printf("[_wait]\n");
 
 }
 
