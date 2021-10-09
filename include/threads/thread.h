@@ -115,6 +115,7 @@ struct thread {
 			- child가 실행될 때 parent의 parent_if에서 보관된 reg 상태 정보를 가저와 본인의 reg 로 업데이트함 (즉 fork된 시점의 reg 상태)
 	 */
 	struct intr_frame parent_if;
+	struct semaphore fork_sema;			/* child가 생성 완료될 때까지 parent가 기다릴 수 있도록 함 // Q. 왜 lock이 아닐까? */
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
