@@ -9,6 +9,8 @@
 #include "intrinsic.h"
 #include "threads/init.h"
 #include "include/filesys/filesys.h"
+// added
+#include "userprog/process.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -32,6 +34,7 @@ void _halt (void);
 void _exit (int status);
 int _wait (tid_t pid);
 tid_t _fork (const char* thread_name, struct intr_frame *if_);
+int _exec (const char *file);
 int _write (int fd, const void *buffer, unsigned size);
 bool _create (const char *file, unsigned initial_size);
 
@@ -68,7 +71,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 
 		case SYS_EXEC:                   /* Switch current process. */
-			// printf("  SYS_EXEC called!\n");
+			f->R.rax = _exec ((char *) f->R.rdi);
 			break;
 
 		case SYS_WAIT:                   /* Wait for a child process to die. */
@@ -147,14 +150,20 @@ void _exit (int status) {
 	thread_exit();
 }
 
-int _wait (tid_t pid) {
-	// printf("[_wait] pid %d\n", pid);
-	return process_wait(pid);
-}
-
 tid_t _fork (const char* thread_name, struct intr_frame *if_) {
 	check_address(thread_name);
 	return process_fork(thread_name, if_);
+}
+
+int _exec (const char *file) {
+	printf("[_exec] %s\n", file);
+	NOT_REACHED();
+	return -1;
+}
+
+int _wait (tid_t pid) {
+	// printf("[_wait] pid %d\n", pid);
+	return process_wait(pid);
 }
 
 bool _create (const char *file, unsigned initial_size) {
@@ -162,7 +171,7 @@ bool _create (const char *file, unsigned initial_size) {
 	return filesys_create(file, initial_size);
 }
 
-int _write (int fd, const void *buffer, unsigned size) {
+int _write (int fd UNUSED, const void *buffer, unsigned size) {
 	// temporary code to pass args related test case
 	putbuf(buffer, size);
 	return size;
