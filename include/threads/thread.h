@@ -103,6 +103,10 @@ struct thread {
 	struct list donations;				/* (donate 받는 입장에서) 본인에게 donate 준 thread 들을 기록 */
 	struct list_elem donation_elem;		/* (donate 주는 입장에서) donate 받은 thread의 donation list에서 연결 노드로 사용됨 */
 
+	/* child precess 관련 멤버 */
+	struct list children;				/* (부모 thread 입장에서) 자식 thread들을 담은 list */
+	struct list_elem child_elem;		/* (부모 thread 입장에서) 자식 thread들이 연결되는 노드로 사용됨 */
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
