@@ -156,6 +156,8 @@ __do_fork (void *aux) {
 
 	process_init ();
 
+	
+
 	/* Finally, switch to the newly created process. */
 	if (succ)
 		do_iret (&if_);

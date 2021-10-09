@@ -107,6 +107,15 @@ struct thread {
 	struct list children;				/* (부모 thread 입장에서) 자식 thread들을 담은 list */
 	struct list_elem child_elem;		/* (부모 thread 입장에서) 자식 thread들이 연결되는 노드로 사용됨 */
 
+	/* fork 관련 멤버
+		- parent_if
+			- parent가 fork될 당시의 register 상태를 보관하는 곳 (parent 본인의 parent_if를 업데이트한 뒤 thread_create를 실행)
+			- 이 때, thread_create로 생성된 child가 곧바로 실행될지, 혹은 parent가 계속 진행되다가 child가 실행될지 알 수 없음
+			- 그러므로 child가 처음 실행되는 시점의 parent register 상태는 fork가 요청된 시점의 상태와 다를 수 있음 (그래서 parent_if에 보관해두는 것)
+			- child가 실행될 때 parent의 parent_if에서 보관된 reg 상태 정보를 가저와 본인의 reg 로 업데이트함 (즉 fork된 시점의 reg 상태)
+	 */
+	struct intr_frame parent_if;
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
