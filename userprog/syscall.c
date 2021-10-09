@@ -30,6 +30,8 @@ void check_address(const char *addr);
 
 void _halt (void);
 void _exit (int status);
+int _wait (tid_t pid);
+tid_t _fork (const char* thread_name, struct intr_frame *if_);
 int _write (int fd, const void *buffer, unsigned size);
 bool _create (const char *file, unsigned initial_size);
 
@@ -54,18 +56,15 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		// f->R.rax, f->R.rdi,f->R.rsi,f->R.rdx,f->R.r10,f->R.r8,f->R.r9);
 	switch(f->R.rax) {
 		case SYS_HALT:                   /* Halt the operating system. */
-			// printf("  SYS_HALT called!\n");
 			_halt ();
 			break;
 
 		case SYS_EXIT:				  	 /* Terminate this process. */
-			// printf("  SYS_EXIT called!\n");
 			_exit (f->R.rdi);
 			break;
 
 		case SYS_FORK:                   /* Clone current process. */
-			// printf("  SYS_FORK called!\n");
-			_fork (f->R.rdi, f);
+			_fork ((char *) f->R.rdi, f);
 			break;
 
 		case SYS_EXEC:                   /* Switch current process. */
@@ -73,11 +72,10 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 
 		case SYS_WAIT:                   /* Wait for a child process to die. */
-			// printf("  SYS_WAIT called!\n");
+			f->R.rax = _wait((tid_t) f->R.rdi);
 			break;
 
 		case SYS_CREATE:                 /* Create a file. */
-			// printf("  SYS_CREATE called!\n");
 			f->R.rax = _create((char *) f->R.rdi, f->R.rsi);
 			break;
 
@@ -146,7 +144,11 @@ void _exit (int status) {
 	thread_exit ();
 }
 
-void _fork (const char* thread_name, struct intr_frame *if_) {
+int _wait (tid_t pid) {
+
+}
+
+tid_t _fork (const char* thread_name, struct intr_frame *if_) {
 	check_address(thread_name);
 	return process_fork(thread_name, if_);
 }
