@@ -155,10 +155,24 @@ tid_t _fork (const char* thread_name, struct intr_frame *if_) {
 	return process_fork(thread_name, if_);
 }
 
-int _exec (const char *file) {
-	printf("[_exec] %s\n", file);
+int _exec (const char *file_name) {
+	/* 잘못된 주소값인지 확인 */
+	check_address(file_name);
+
+	/* Make a copy of FILE_NAME.
+	 * Otherwise there's a race between the caller and load(). */
+	char *fn_copy;
+	fn_copy = palloc_get_page (0);
+	if (fn_copy == NULL)
+		return TID_ERROR;
+	printf("[_exec] before copy %s, %s\n", file_name, fn_copy);
+	strlcpy (fn_copy, file_name, PGSIZE);
+	printf("[_exec] after copy %s\n", fn_copy);
+
+	/* 프로그램 실행 */
+	if (process_exec(fn_copy) < 0)
+		return -1;
 	NOT_REACHED();
-	return -1;
 }
 
 int _wait (tid_t pid) {
