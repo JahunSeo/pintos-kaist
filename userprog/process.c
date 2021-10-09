@@ -251,21 +251,35 @@ process_exec (void *f_name) {
  * This function will be implemented in problem 2-2.  For now, it
  * does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) {
+process_wait (tid_t child_tid) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
 
-	// printf("[process_wait] 1 %d\n", child_tid);
-	// while(1);
-	thread_sleep(150*child_tid);
-	// printf("[process_wait] 2 %d\n", child_tid);
-
-
-
-	// TODO: should removes all traces of the process from the system
-
-	return child_tid;
+	printf("[process_wait] child_tid %d\n", child_tid);
+	/* child_tid가 현재 thread의 자식인지 확인 */
+	struct thread *child;
+	child = get_child_process(child_tid);
+	printf("[process_wait] child %p\n", child);
+	if (child == NULL)
+		return TID_ERROR;
+	/* 이미 child_tid를 wait하는 상태인지 확인 */
+	if (list_size(&child->wait_sema.waiters) != 0)
+		return TID_ERROR;
+	printf("[process_wait] child_name %s\n", child->name);
+	/* child의 wait_sema를 down하여 대기 상태로 진입 */
+	sema_down(&child->wait_sema);
+	/* child의 exit_status 확인 */
+	int exit_status = child->exit_status;
+	printf("[process_wait] exit_status %d\n", exit_status);
+	/* current의 children에서 child 제거 */
+	list_remove(&child->child_elem);
+	/* child의 free_sema를 up시켜 child가 회수 완료되었음을 알림
+		- thread_exit() 등의 작업은 free_sema를 획득한 child에서 마저 처리됨
+	 */
+	sema_up(&child->free_sema);
+	printf("[process_wait] free child %d\n", child_tid);
+	return exit_status;
 }
 
 /* Exit the process. This function is called by thread_exit (). 
@@ -281,9 +295,11 @@ process_exit (void) {
 
 	process_cleanup ();
 
-	// process가 종료되었다는 문장 출력
+	/* process가 종료되었다는 문장 출력 */
 	printf("%s: exit(%d)\n", thread_name(), curr->exit_status);
-	// parent가 현재 thread를 wait하고 있었다면, 종료되었음을 알림
+	/* parent가 현재 thread를 wait하고 있었다면, 종료되었음을 알림 
+		- parent가 wait을 걸기 전에 child가 먼저 종료되었을 수도 있음
+	*/ 
 	sema_up(&curr->wait_sema);
 	// parent가 현재 thread를 회수할 때까지 thread_exit하지 않고 기다림 (exit_status를 전달하기 위함)
 	sema_down(&curr->free_sema);

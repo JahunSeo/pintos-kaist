@@ -142,10 +142,12 @@ void _halt (void) {
 void _exit (int status) {
 	struct thread *curr = thread_current();
 	curr->exit_status = status;	
+	printf("[_exit] status %s, %d\n", thread_name(), curr->exit_status);
 	thread_exit();
 }
 
 int _wait (tid_t pid) {
+	printf("[_wait] pid %d\n", pid);
 	process_wait(pid);
 }
 
