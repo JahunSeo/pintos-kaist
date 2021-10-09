@@ -64,7 +64,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 
 		case SYS_FORK:                   /* Clone current process. */
-			_fork ((char *) f->R.rdi, f);
+			f->R.rax = _fork ((char *) f->R.rdi, f);
 			break;
 
 		case SYS_EXEC:                   /* Switch current process. */
@@ -142,13 +142,14 @@ void _halt (void) {
 void _exit (int status) {
 	struct thread *curr = thread_current();
 	curr->exit_status = status;	
-	printf("[_exit] status %s, %d\n", thread_name(), curr->exit_status);
+	/* process가 종료되었다는 문장 출력 */
+	printf("%s: exit(%d)\n", thread_name(), curr->exit_status);
 	thread_exit();
 }
 
 int _wait (tid_t pid) {
-	printf("[_wait] pid %d\n", pid);
-	process_wait(pid);
+	// printf("[_wait] pid %d\n", pid);
+	return process_wait(pid);
 }
 
 tid_t _fork (const char* thread_name, struct intr_frame *if_) {

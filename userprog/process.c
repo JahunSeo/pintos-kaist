@@ -91,11 +91,13 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 		return TID_ERROR;
 	// child_tid 로 thread 가져오기 (이 때는 NULL일 수 없음)
 	struct thread *child = get_child_process(child_tid);
+
 	// child가 생성 완료될 때까지 대기
 	sema_down(&child->fork_sema);
 	// child 생성 중에 오류가 발생하지는 않았는지 체크
 	if (child->exit_status == -1) // TODO: __do_fork에서 exit_status를 변경하기
 		return TID_ERROR;
+
 	return child_tid;
 }
 
@@ -256,29 +258,24 @@ process_wait (tid_t child_tid) {
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
 
-	printf("[process_wait] child_tid %d\n", child_tid);
 	/* child_tid가 현재 thread의 자식인지 확인 */
 	struct thread *child;
 	child = get_child_process(child_tid);
-	printf("[process_wait] child %p\n", child);
 	if (child == NULL)
 		return TID_ERROR;
 	/* 이미 child_tid를 wait하는 상태인지 확인 */
 	if (list_size(&child->wait_sema.waiters) != 0)
 		return TID_ERROR;
-	printf("[process_wait] child_name %s\n", child->name);
 	/* child의 wait_sema를 down하여 대기 상태로 진입 */
 	sema_down(&child->wait_sema);
 	/* child의 exit_status 확인 */
 	int exit_status = child->exit_status;
-	printf("[process_wait] exit_status %d\n", exit_status);
 	/* current의 children에서 child 제거 */
 	list_remove(&child->child_elem);
 	/* child의 free_sema를 up시켜 child가 회수 완료되었음을 알림
 		- thread_exit() 등의 작업은 free_sema를 획득한 child에서 마저 처리됨
 	 */
 	sema_up(&child->free_sema);
-	printf("[process_wait] free child %d\n", child_tid);
 	return exit_status;
 }
 
@@ -295,8 +292,6 @@ process_exit (void) {
 
 	process_cleanup ();
 
-	/* process가 종료되었다는 문장 출력 */
-	printf("%s: exit(%d)\n", thread_name(), curr->exit_status);
 	/* parent가 현재 thread를 wait하고 있었다면, 종료되었음을 알림 
 		- parent가 wait을 걸기 전에 child가 먼저 종료되었을 수도 있음
 	*/ 
