@@ -204,6 +204,12 @@ thread_create (const char *name, int priority,
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
 
+	/* parent-child 관계 
+		- 현재 thread의 chilren list에 새로 생성된 thread 추가 (FIFO 방식)
+	*/
+	struct thread *parent = thread_current();
+	list_push_back(&parent->children, &t->child_elem);
+
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
 	t->tf.rip = (uintptr_t) kernel_thread;
@@ -582,7 +588,11 @@ init_thread (struct thread *t, const char *name, int priority) {
 	// donation 관련 멤버 초기 설정
 	t->init_priority = priority;  // 변하지 않고, 변경된 priority를 되돌릴 때 사용됨
 	t->wait_on_lock = NULL;	       
-	list_init (&t->donations);    
+	list_init (&t->donations);
+
+	/* parent child 관계 관련 */
+	list_init(&t->children);		/* children list 생성 */
+    
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
