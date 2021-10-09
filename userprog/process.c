@@ -96,7 +96,6 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	// child 생성 중에 오류가 발생하지는 않았는지 체크
 	if (child->exit_status == -1) // TODO: __do_fork에서 exit_status를 변경하기
 		return TID_ERROR;
-
 	return child_tid;
 }
 
@@ -172,6 +171,7 @@ __do_fork (void *aux) {
 
 	/* 1. Read the cpu context to local stack. */
 	memcpy (&if_, parent_if, sizeof (struct intr_frame));
+	if_.R.rax = 0; // syscall fork's return value for child process
 
 	/* 2. Duplicate PT */
 	current->pml4 = pml4_create();
@@ -196,13 +196,17 @@ __do_fork (void *aux) {
 
 	process_init ();
 
-
+	/* child process가 생성 완료되었음을 parent에게 전달 */
+	sema_up(&current->fork_sema);
 
 	/* Finally, switch to the newly created process. */
 	if (succ)
 		do_iret (&if_);
 error:
-	thread_exit ();
+	current->exit_status = TID_ERROR;
+	sema_up(&current->fork_sema);
+	process_exit();
+	// thread_exit ();
 }
 
 /* Switch the current execution context to the f_name.
@@ -253,10 +257,14 @@ process_wait (tid_t child_tid UNUSED) {
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
 
-	// printf("[process_wait] infinite loop\n");
+	// printf("[process_wait] 1 %d\n", child_tid);
 	// while(1);
-	thread_sleep(150);
-	return -1;
+	thread_sleep(150*child_tid);
+	// printf("[process_wait] 2 %d\n", child_tid);
+
+	// TODO: should removes all traces of the process from the system
+
+	return child_tid;
 }
 
 /* Exit the process. This function is called by thread_exit (). */
@@ -269,6 +277,8 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 	process_cleanup ();
+	// temporary code
+	thread_exit();
 }
 
 /* Free the current process's resources. */
