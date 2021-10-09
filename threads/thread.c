@@ -204,6 +204,11 @@ thread_create (const char *name, int priority,
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
 
+	/**/
+	struct thread *cur = thread_current();
+	list_push_back(&cur->child_list, &t->child_elem); // new child to caller's list
+
+
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
 	t->tf.rip = (uintptr_t) kernel_thread;
@@ -581,6 +586,9 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->init_priority = priority;  // 변하지 않고, 변경된 priority를 되돌릴 때 사용됨
 	t->wait_on_lock = NULL;	       
 	list_init (&t->donations);    
+	list_init (&t->child_list);
+	sema_init (&t->fork_sema, 0);
+
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
@@ -751,7 +759,7 @@ schedule (void) {
 /* Returns a tid to use for a new thread. */
 static tid_t
 allocate_tid (void) {
-	static tid_t next_tid = 1;
+	static tid_t next_tid = 1;  /*static 변수는 최초에 한번만 초기화 됨을 인지할 것.*/
 	tid_t tid;
 
 	lock_acquire (&tid_lock);

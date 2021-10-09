@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "threads/synch.h"
 #include "threads/interrupt.h"
 #ifdef VM
 #include "vm/vm.h"
@@ -101,6 +102,16 @@ struct thread {
 	struct lock *wait_on_lock;          /* (donate 주는 입장에서) donate 주는 이유인 lock을 기록 */
 	struct list donations;				/* (donate 받는 입장에서) 본인에게 donate 준 thread 들을 기록 */
 	struct list_elem donation_elem;		/* (donate 주는 입장에서) donate 받은 thread의 donation list에서 연결 노드로 사용됨 */
+
+	/*wait sys call*/
+	struct list child_list;        // children list
+	struct list_elem child_elem;  
+	struct semaphore wait_sema; //sema for parent to wait child
+	/*fork sys call*/
+	int exit_status;	
+	struct intr_frame parent_if;
+	struct semaphore fork_sema;
+	// struct semaphore free_sema;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */

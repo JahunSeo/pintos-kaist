@@ -7,6 +7,7 @@
 #include "userprog/gdt.h"
 #include "threads/flags.h"
 #include "intrinsic.h"
+#include "userprog/process.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -71,6 +72,15 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	case SYS_EXIT:
 		exit(f->R.rdi);
 		break;
+	
+	// case SYS_WAIT:
+	// 	f->R.rax = process_wait(f->R.rdi);
+	// 	break
+
+	case SYS_FORK:
+		f->R.rax = fork(f->R.rdi, f);
+		break;
+
 	default:
 		break;
 	}
@@ -88,7 +98,7 @@ int write(int fd, const void *buffer, unsigned size)
 void exit(int status)
 {
 	struct thread *cur = thread_current();
-	// cur->exit_stat = status;
+	cur->exit_status = status;
 
 	printf("%s: exit(%d)\n", thread_name(), status); // Process Termination Message
 	thread_exit();
@@ -97,7 +107,8 @@ void exit(int status)
 
 void is_useradd(const uint64_t *uaddr)
 {
-	if (uaddr == NULL || !(is_user_vaddr(uaddr)))
+	struct thread *cur = thread_current();
+	if (uaddr == NULL || !(is_user_vaddr(uaddr)) || pml4_get_page(cur->pml4, uaddr) == NULL)
 	{
 		exit(-1);
 	}
@@ -106,4 +117,9 @@ void is_useradd(const uint64_t *uaddr)
 void halt(void)
 {
 	power_off();
+}
+
+tid_t fork(const char *thread_name, struct intr_frame *f){
+
+	return process_fork(thread_name, f);
 }
