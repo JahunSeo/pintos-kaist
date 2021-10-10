@@ -107,11 +107,12 @@ struct thread {
 	struct list child_list;        // children list
 	struct list_elem child_elem;  
 	struct semaphore wait_sema; //sema for parent to wait child
+	struct semaphore free_sema;
 	/*fork sys call*/
 	int exit_status;	
 	struct intr_frame parent_if;
 	struct semaphore fork_sema;
-	// struct semaphore free_sema;
+
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */

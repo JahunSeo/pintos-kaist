@@ -427,8 +427,8 @@ load (const char *file_name, struct intr_frame *if_) {
 	process_activate (thread_current ());
 
 	int argc = 0 ;
-	char * save_ptr, *arg[128], *token;
-	char ** argv[128];
+	char * save_ptr, *token;
+	char * argv[128];
 	void *rsp;
 
 	token = strtok_r(file_name, " ", &save_ptr);

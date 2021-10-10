@@ -119,9 +119,7 @@ sema_up (struct semaphore *sema) {
 
 	sema->value++;
 	/* unblock으로 새롭게 ready list에 thread가 추가된 쓰레드와 running중인 쓰레드를 비교하고 preemption한다.*/
-	if (!intr_context ()){
 	test_max_priority();
-	}
 	intr_set_level (old_level);
 }
 
