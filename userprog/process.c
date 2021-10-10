@@ -293,8 +293,23 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-	thread_sleep(200);
-	return -1;
+	// thread_sleep(200);
+	// return -1;
+
+	struct thread *child = get_child_with_pid(child_tid);
+
+	// [Fail] Not my child
+	if (child == NULL)
+		return -1;
+
+	sema_down(&child->wait_sema);
+
+	int exit_status = child->exit_status;
+	list_remove(&child->child_elem);
+
+	sema_up(&child->free_sema); // wake-up child in process_exit - proceed with thread_exit
+	return exit_status;
+
 }
 
 /* Exit the process. This function is called by thread_exit (). */
@@ -307,6 +322,9 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 	process_cleanup ();
+	sema_up(&curr->wait_sema);
+	sema_down(&curr->free_sema);
+
 }
 
 /* Free the current process's resources. */
