@@ -177,7 +177,8 @@ int _exec (const char *file_name) {
 
 	/* 프로그램 실행 */
 	if (process_exec(fn_copy) < 0)
-		return -1;
+		_exit(-1);
+		// return -1;
 	NOT_REACHED();
 }
 
