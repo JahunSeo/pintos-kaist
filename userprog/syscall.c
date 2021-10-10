@@ -162,8 +162,10 @@ int _exec (const char *file_name) {
 
 	/* Make a copy of FILE_NAME.
 	 * Otherwise there's a race between the caller and load().
-		- process_exec에서도 실패 시 palloc_free_page (file_name) 을 실행하기 때문에 
-		- palloc으로 생성해주어야 함
+	 	- file_name을 그대로 process_exec의 인자로 넘기면 파일을 load하지 못하고 오류 발생
+		- process_exec에서 파일 load 전에 process_cleanup()으로 현재 context를 지워버리기 때문
+		- process_exec에서 파일 load가 잘 되기 위해서 실행할 파일의 이름을 palloc으로 생성된 별도의 페이지에 담아주어야 함
+		- (process_exec에서도 파일 load 이후 palloc_free_page (file_name)로 fn_copy가 담겼던 페이지를 처리해준다는 점 확인)
 	*/
 	char *fn_copy;
 	fn_copy = palloc_get_page (PAL_ZERO);
