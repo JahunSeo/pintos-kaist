@@ -218,7 +218,7 @@ int
 process_exec (void *f_name) {
 	char *file_name = f_name;
 	bool success;
-	printf("[process_exec] startpoint: %s\n", file_name);
+	// printf("[process_exec] startpoint: %s\n", file_name);
 
 	/* We cannot use the intr_frame in the thread structure.
 	 * This is because when current thread rescheduled,
@@ -232,10 +232,10 @@ process_exec (void *f_name) {
 
 	/* We first kill the current context */
 	process_cleanup ();
-	printf("[process_exec] before load: %s\n", file_name);
+	// printf("[process_exec] before load: %s\n", file_name);
 	/* And then load the binary */
 	success = load (file_name, &_if);
-	printf("[process_exec] after load\n");
+	// printf("[process_exec] after load %d\n", success);
 
 	/* If load failed, quit. */
 	palloc_free_page (file_name);
@@ -430,7 +430,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	int argc = 0;
  
 	char *token, *save_ptr;
-	printf("[load] file_name %d, %s\n", argc, file_name);
+	// printf("[load] file_name %d, %s\n", argc, file_name);
 	for (token = strtok_r(file_name, " ", &save_ptr); 
 		token != NULL;
 		token = strtok_r(NULL, " ", &save_ptr)) {
@@ -438,7 +438,7 @@ load (const char *file_name, struct intr_frame *if_) {
 			// printf("'%s'\n", argv[argc]);
 			argc++;
 	}
-	printf("[load] file_name %d, %s\n", argc, file_name);
+	// printf("[load] file_name %d, %s\n", argc, file_name);
 
 	/* Open executable file. */
 	file = filesys_open (file_name);

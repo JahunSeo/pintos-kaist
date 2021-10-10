@@ -169,12 +169,12 @@ int _exec (const char *file_name) {
 	fn_copy = palloc_get_page (PAL_ZERO);
 	if (fn_copy == NULL)
 		return TID_ERROR;
-	printf("[_exec] before copy %d, %s // %p\n", strlen(file_name), file_name, fn_copy);
+	// printf("[_exec] before copy %d, %s // %p\n", strlen(file_name), file_name, fn_copy);
 	strlcpy (fn_copy, file_name, strlen(file_name) + 1);
-	printf("[_exec] after  copy %d, %s\n", strlen(fn_copy), fn_copy);
+	// printf("[_exec] after  copy %d, %s\n", strlen(fn_copy), fn_copy);
 
 	/* 프로그램 실행 */
-	if (process_exec(&fn_copy) < 0)
+	if (process_exec(fn_copy) < 0)
 		return -1;
 	NOT_REACHED();
 }
