@@ -210,11 +210,13 @@ thread_create (const char *name, int priority,
 	struct thread *parent = thread_current();
 	list_push_back(&parent->children, &t->child_elem);
 
-
-	/* file descriptor 관련 */
-	printf("[init_thread]  %d, %d, %p \n", PAL_ZERO, FDT_PAGE_CNT, t->fdt);
+	/* file descriptor 관련
+		- palloc을 활용해 kernel memory fool에 FDT 생성
+		- next_fd를 2로 초기화: 0은 STDIN, 1은 STDOUT
+	 */
+	// printf("[thread_create]  %d, %d, %p \n", PAL_ZERO, FDT_PAGE_CNT, t->fdt);
 	t->fdt = (struct file**) palloc_get_multiple(PAL_ZERO, FDT_PAGE_CNT);
-
+	t->next_fd = 2; 
 
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
