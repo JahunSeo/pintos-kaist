@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
+#include "threads/synch.h"
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -102,6 +103,23 @@ struct thread {
 	struct lock *wait_on_lock;          /* (donate 주는 입장에서) donate 주는 이유인 lock을 기록 */
 	struct list donations;				/* (donate 받는 입장에서) 본인에게 donate 준 thread 들을 기록 */
 	struct list_elem donation_elem;		/* (donate 주는 입장에서) donate 받은 thread의 donation list에서 연결 노드로 사용됨 */
+
+	/* child precess 관련 멤버 */
+	struct list children;				/* (부모 thread 입장에서) 자식 thread들을 담은 list */
+	struct list_elem child_elem;		/* (부모 thread 입장에서) 자식 thread들이 연결되는 노드로 사용됨 */
+
+	/* fork 관련 멤버
+		- parent_if
+			- parent가 fork될 당시의 register 상태를 보관하는 곳 (parent 본인의 parent_if를 업데이트한 뒤 thread_create를 실행)
+			- 이 때, thread_create로 생성된 child가 곧바로 실행될지, 혹은 parent가 계속 진행되다가 child가 실행될지 알 수 없음
+			- 그러므로 child가 처음 실행되는 시점의 parent register 상태는 fork가 요청된 시점의 상태와 다를 수 있음 (그래서 parent_if에 보관해두는 것)
+			- child가 실행될 때 parent의 parent_if에서 보관된 reg 상태 정보를 가저와 본인의 reg 로 업데이트함 (즉 fork된 시점의 reg 상태)
+	 */
+	int exit_status;					/* 종료되었을 때의 상태 정보: parent가 child의 종료 상태를 확인하기 위해 사용 */
+	struct intr_frame parent_if;
+	struct semaphore fork_sema;			/* 현재 thread가 fork 완료되었는지 여부 // Q. 왜 lock이 아닐까? */
+	struct semaphore wait_sema;			/* 현재 thread가 parent에 의해 wait되는지 여부 */
+	struct semaphore free_sema;			/* 현재 thread가 parent에 의해 회수되었는지 여부 (회수 대상은 exit_status) */
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */

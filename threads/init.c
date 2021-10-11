@@ -123,6 +123,7 @@ main (void) {
 
 	/* Finish up. */
 	if (power_off_when_done)
+		// printf ("[main] power_off by main\n");
 		power_off ();
 	thread_exit ();
 }
@@ -241,7 +242,7 @@ run_task (char **argv) {
 
 	printf ("Executing '%s':\n", task);
 #ifdef USERPROG
-	printf("[run_task] thread_tests: %d\n", thread_tests);
+	// printf("[run_task] thread_tests: %d\n", thread_tests);
 	if (thread_tests){
 		run_test (task);
 	} else {
