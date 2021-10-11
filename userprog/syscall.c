@@ -147,13 +147,32 @@ int process_add_file (struct file *file) {
 		- FDT에 추가 가능한 파일 개수가 가득 찼는지 확인
 	*/
 	struct thread *curr = thread_current();
-	if (curr->next_fd > FDT_ENTRY_MAX) {
-		_exit(-1);		
+	if (curr->next_fd >= FDT_ENTRY_MAX) {
+		// _exit(-1);	
+		return TID_ERROR;	
 	}
 	/* 현재 thread의 fdt에 새로운 파일 추가 */
-	curr->fdt[curr->next_fd] = file;
-	/* next_fd를 1 증가시킴 */
+	int fd = curr->next_fd;
+	curr->fdt[fd] = file;
+	/* 다음 빈 칸을 찾아 next_fd로 설정
+		- TODO: 파일이 closed 되었을 때, 그 빈 칸을 활용할 수 있도록 변경
+	 */
 	curr->next_fd++;
+	return fd;
+}
+
+struct file *process_get_file (int fd) {
+	/* fd 값이 유효한지 확인 */
+	if (fd < 0 || fd >= FDT_ENTRY_MAX) {
+		return TID_ERROR;
+	}
+	/* 현재 thread의 fdt 확인 */
+	struct thread *curr = thread_current();
+	struct file *file;	
+	if (file = curr->fdt[fd] == NULL) {
+		return TID_ERROR;
+	}
+	return file;
 }
 
 
