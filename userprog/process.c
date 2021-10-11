@@ -50,6 +50,11 @@ process_create_initd (const char *file_name) {
 		return TID_ERROR;
 	strlcpy (fn_copy, file_name, PGSIZE);
 
+	/* 새로 생성되는 thread의 이름을 실행하려는 프로그램명으로 수정 */
+	char *save_ptr;
+	file_name = strtok_r(file_name, " ", &save_ptr);
+	// printf("[process_create_initd] %s\n", file_name);
+
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
 	if (tid == TID_ERROR)
@@ -189,7 +194,6 @@ process_exec (void *f_name) {
 	NOT_REACHED ();
 }
 
-
 /* Waits for thread TID to die and returns its exit status.  If
  * it was terminated by the kernel (i.e. killed due to an
  * exception), returns -1.  If TID is invalid or if it was not a
@@ -204,6 +208,10 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+
+	// printf("[process_wait] infinite loop\n");
+	// while(1);
+	thread_sleep(150);
 	return -1;
 }
 
@@ -335,6 +343,25 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 	process_activate (thread_current ());
 
+	/* 1차로 argument parsing
+		- file_name에서 인자들을 '\0'으로 구분
+		- file_name에서 첫 번째 token으로 file 실행
+		- file_name을 argument_stack의 첫번째 인자로 전달
+	*/
+	char *argv[64]; // string literal 주소값들의 배열
+	int argc = 0;
+ 
+	char *token, *save_ptr;
+	printf("[load] file_name %d, %s\n", argc, file_name);
+	for (token = strtok_r(file_name, " ", &save_ptr); 
+		token != NULL;
+		token = strtok_r(NULL, " ", &save_ptr)) {
+			argv[argc] = (char *) token;
+			printf("'%s'\n", argv[argc]);
+			argc++;
+	}
+	printf("[load] file_name %d, %s\n", argc, file_name);
+
 	/* Open executable file. */
 	file = filesys_open (file_name);
 	if (file == NULL) {
@@ -416,7 +443,8 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
-
+	argument_stack(argv, argc, if_);
+	hex_dump(if_->rsp, if_->rsp, USER_STACK - if_->rsp, true); 
 	success = true;
 
 done:
@@ -425,6 +453,63 @@ done:
 	return success;
 }
 
+/*
+	실행할 파일의 stack(esp)에 인자를 전달하는 함수
+	- parse: 프로그램 이름과 인자가 저장되어 있는 메모리 공간
+	- count: 인자의 개수
+	- esp: 스택 포인터를 가리키는 주소 값
+*/
+void argument_stack(char **argv, const int argc, struct intr_frame *if_) {
+	printf("[argument_stack] %d, %p\n", argc, (char *) if_->rsp); // 0x47480000
+	uintptr_t rsp = if_->rsp;
+	/* 프로그램 이름 및 인자(문자열) push */
+	for (int i = argc-1; i >= 0; i--) {
+		printf("  argv[%d] %ld, %s\n", i, strlen(argv[i]), (char *) argv[i]);
+		rsp -= strlen(argv[i]) + 1; // rsp를 이동시켜 공간을 확보, '\0'을 위해 추가
+		memcpy((char *) rsp, argv[i], strlen(argv[i]) + 1); // 확보된 공간에 문자열 추가
+		argv[i] = (char *) rsp; // 스택에 추가된 문자열의 주소값을 보관 (argv 재활용)
+		printf("  argument: %p, %s, %p\n", (char *) rsp, (char *) rsp, (char *) argv[i]);
+	}
+
+	/* word alignment push
+		- 현재 rsp 위치까지 데이터가 차 있음
+		- rsp의 바로 아래 byte부터 rsp % 8개 만큼 0으로 채우면 8byte 패딩을 만들 수 있음
+		- stack bottom (7,6,5==rsp,0,0,0,0,0)
+	 */
+	while (rsp % 8 != 0) {
+		rsp--;
+		// rsp는 그냥 interger이기 때문에, 먼저 1byte 주소값으로 casting을 해준 뒤 역변환을 통해 그 byte 자리에 0을 넣음
+		*(char *)rsp = (char)0; // 여기서는 1byte
+		printf("  padding: %p, %c\n", (char *)rsp, *(char *) rsp);
+	}
+
+	/* 프로그램 이름 및 인자 주소들 push */
+	// 포인터의 크기 계산
+	size_t PTR_SIZE = sizeof(char *);
+	printf("  size of pointer: %ld\n", PTR_SIZE);
+	// argv[argc] 위치에 0 삽입
+	rsp -= PTR_SIZE;
+	*(char **)rsp = (char *)0; // 여기서는 8 bytes
+	// argv[0] ~ argv[argc-1]에 각 문자열의 주소값 저장
+	for (int j=argc-1; j>=0; j--) {
+		rsp -= PTR_SIZE;
+		// 여기서 *(char *) 로 처리하면 에러 발생! 왜? 8byte가 아닌 1byte로 처리되기 때문
+		// rsp부터 sizeof(char *) 크기 만큼, 즉 주소값 크기 만큼의 자리에 argv[j]를 넣겠다는 의미
+		// 여기서 rsp는 (char *)에 대한 주소값이므로, *(char **)
+		*(char **)rsp = argv[j]; 
+		printf("  at %p, %p (%p)\n", (char *)rsp, *(char **)rsp, (char *) argv[j]);
+	}
+	/* fake address(0) 저장 */
+	rsp -= PTR_SIZE;
+	*(char **)rsp = (char *)0; // 여기서도 8 bytes
+	printf("  fake address: %p, %p\n", (char *)rsp, *(char **)rsp);
+
+	if_->rsp = rsp;
+	/* argc (문자열의 개수 저장) push */
+	if_->R.rdi = argc;
+	/* argv (문자열을 가리키는 주소들의 배열을 가리킴) push*/ 
+	if_->R.rsi = rsp - sizeof(char *); // fake return address 위치를 빼주어야 함
+}
 
 /* Checks whether PHDR describes a valid, loadable segment in
  * FILE and returns true if so, false otherwise. */
