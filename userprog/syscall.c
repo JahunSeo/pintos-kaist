@@ -50,6 +50,8 @@ int _read (int fd, void *buffer, unsigned size);
 int _filesize (int fd);
 int _write (int fd, const void *buffer, unsigned size);
 void _close (int fd);
+void _seek (int fd, unsigned position);
+unsigned _tell (int fd);
 
 void
 syscall_init (void) {
@@ -116,11 +118,11 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 
 		case SYS_SEEK:                   /* Change position in a file. */
-			// printf("  SYS_HALT called!\n");
+			_seek(f->R.rdi, f->R.rsi);
 			break;
 
 		case SYS_TELL:                   /* Report current position in a file. */
-			// printf("  SYS_TELL called!\n");
+			f->R.rax = _tell(f->R.rdi);
 			break;
 
 		case SYS_CLOSE:                  /* Close a file. */
@@ -327,4 +329,18 @@ int _write (int fd UNUSED, const void *buffer, unsigned size) {
 
 void _close (int fd) {
 	process_close_file(fd);
+}
+
+void _seek (int fd, unsigned position) {
+	if (fd < 2) return;
+	struct file *file = process_get_file(fd);
+	if (file == NULL) return;
+	file_seek(file, position);
+}
+
+unsigned _tell (int fd) {
+	if (fd < 2) return;
+	struct file *file = process_get_file(fd);
+	if (file == NULL) return;
+	return file_tell(file);
 }
