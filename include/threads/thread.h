@@ -126,7 +126,7 @@ struct thread {
 	struct semaphore wait_sema;			/* 현재 thread가 parent에 의해 wait되는지 여부 */
 	struct semaphore free_sema;			/* 현재 thread가 parent에 의해 회수되었는지 여부 (회수 대상은 exit_status) */
 	/* file descriptor 관련 멤버 */
-	struct file** fdt[FDT_ENTRY_MAX];	/* "'파일의 주소값'들을 담은 배열"에 대한 주소값 */
+struct file** fdt;						/* "'파일의 주소값'들을 담은 배열"에 대한 주소값 */
 	int next_fd;						/* 새로운 파일을 open 시 그 파일에 부여할 fd 값 */
 
 #ifdef USERPROG
