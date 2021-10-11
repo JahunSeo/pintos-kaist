@@ -321,10 +321,27 @@ int _filesize (int fd) {
 }
 
 
-int _write (int fd UNUSED, const void *buffer, unsigned size) {
-	// temporary code to pass args related test case
-	putbuf(buffer, size);
-	return size;
+int _write (int fd, const void *buffer, unsigned size) {
+	/* buffer로 들어온 주소값이 유효한지 확인 */
+	check_address(buffer);
+	/* writecnt 초기화 */
+	int writecnt = 0;
+	/* fd가 STDIN인 경우 처리 */
+	if (fd == 0) {
+		return TID_ERROR;
+	}
+	/* fd가 STDOUT인 경우 처리 */ 
+	else if (fd == 1) {
+		putbuf(buffer, size);
+		return size;
+	}
+	/* 현재 thread의 FDT에서 fd 값이 유효한지 확인 */
+	struct file *file = process_get_file(fd);
+	if (file == NULL) {
+		return TID_ERROR;
+	}
+	writecnt = file_write(file, buffer, size);
+	return writecnt;
 }
 
 void _close (int fd) {
