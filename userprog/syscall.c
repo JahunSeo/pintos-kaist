@@ -39,8 +39,14 @@ void _exit (int status);
 int _wait (tid_t pid);
 tid_t _fork (const char* thread_name, struct intr_frame *if_);
 int _exec (const char *file);
-int _write (int fd, const void *buffer, unsigned size);
+
 bool _create (const char *file, unsigned initial_size);
+bool _remove (const char *file);
+int _open (const char *file);
+int _read (int fd, void *buffer, unsigned size);
+int _filesize (int fd);
+int _write (int fd, const void *buffer, unsigned size);
+void _close (int fd);
 
 void
 syscall_init (void) {
