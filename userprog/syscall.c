@@ -12,6 +12,9 @@
 // added
 #include "userprog/process.h"
 #include "threads/palloc.h"
+#include "devices/input.h"
+#include <string.h>
+#include "filesys/file.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -277,15 +280,16 @@ int _open (const char *file_name) {
 
 int _read (int fd, void *buffer, unsigned size) {
 	/* buffer로 들어온 주소값이 유효한지 확인 */
-	check_address(file_name);
+	check_address(buffer);
 	/* readcnt 초기화 */
 	int readcnt = 0;
 	/* fd가 STDIN인 경우 처리 */
 	if (fd == 0) {
 		char key;
+		char *buf = buffer;
 		for (int i=0; i<size; i++) {
 			key = input_getc();
-			buffer[i] = key;
+			*buf++ = key;
 			readcnt++;
 			if (key == '\0') {
 				break;
@@ -298,7 +302,7 @@ int _read (int fd, void *buffer, unsigned size) {
 		return TID_ERROR;
 	}
 	/* 현재 thread의 FDT에서 fd 값이 유효한지 확인 */
-	struct file *file = process_get_file()
+	struct file *file = process_get_file(fd);
 	if (file == NULL) {
 		return TID_ERROR;
 	}

@@ -216,8 +216,8 @@ thread_create (const char *name, int priority,
 	 */
 	// printf("[thread_create]  %d, %d, %p \n", PAL_ZERO, FDT_PAGE_CNT, t->fdt);
 	t->fdt = (struct file**) palloc_get_multiple(PAL_ZERO, FDT_PAGE_CNT);
-	t->fdt[0] = stdin; 
-	t->fdt[1] = stdout;
+	t->fdt[0] = 10; // dummy value 
+	t->fdt[1] = 11; // dummy value
 	t->next_fd = 2; 
 
 	/* Call the kernel_thread if it scheduled.
