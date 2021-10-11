@@ -276,7 +276,34 @@ int _open (const char *file_name) {
 }
 
 int _read (int fd, void *buffer, unsigned size) {
-
+	/* buffer로 들어온 주소값이 유효한지 확인 */
+	check_address(file_name);
+	/* readcnt 초기화 */
+	int readcnt = 0;
+	/* fd가 STDIN인 경우 처리 */
+	if (fd == 0) {
+		char key;
+		for (int i=0; i<size; i++) {
+			key = input_getc();
+			buffer[i] = key;
+			readcnt++;
+			if (key == '\0') {
+				break;
+			}
+		}
+		return readcnt;
+	}
+	/* fd가 STDOUT인 경우 처리 */ 
+	else if (fd == 1) {
+		return TID_ERROR;
+	}
+	/* 현재 thread의 FDT에서 fd 값이 유효한지 확인 */
+	struct file *file = process_get_file()
+	if (file == NULL) {
+		return TID_ERROR;
+	}
+	readcnt = file_read(file, buffer, size);
+	return readcnt;
 }
 
 int _filesize (int fd) {
