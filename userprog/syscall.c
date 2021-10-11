@@ -92,6 +92,14 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	case SYS_REMOVE:
 		f->R.rax = remove(f->R.rdi);
 		break;
+	
+	case SYS_OPEN:
+		f->R.rax = open(f->R.rdi);
+		break;
+
+	// case SYS_CLOSE:
+	// 	close(f->R.rdi);
+	// 	break;
 
 	case SYS_EXEC:
 		if (exec(f->R.rdi) == -1)
@@ -183,3 +191,52 @@ bool remove(const char *file)
 	return filesys_remove(file);
 }
 
+int open (const char *file)
+{
+	is_useradd(file);
+	struct file *fileobj = filesys_open(file);
+
+	if (fileobj == NULL)
+		return -1;
+
+	int fd = add_file_to_fdt(fileobj);
+
+	// FDT full
+	if (fd == -1)
+		file_close(fileobj);
+
+	return fd;
+}
+
+/*SYSCALL HELPER FUNCTION */
+// Find open spot in current thread's fdt and put file in it. Returns the fd.
+int add_file_to_fdt(struct file *file)
+{
+	struct thread *cur = thread_current();
+	struct file **fdt = cur->FDT; // file descriptor table
+
+	// Error - fdt full
+	if (cur->fd_total >= 64)  /*상수로 정의할 것*/
+		return -1;
+
+	int n = 0;
+	while (fdt[n])
+		n++;
+
+	fdt[n] = file;
+	cur->fd_total++;
+	return n;
+}
+
+// Project 2-4. File descriptor
+// Check if given fd is valid, return cur->fdTable[fd]
+static struct file *find_file_by_fd(int fd)
+{
+	struct thread *cur = thread_current();
+
+	// Error - invalid fd
+	if (fd < 0 || fd >= 64)
+		return NULL;
+
+	return cur->FDT[fd]; // automatically returns NULL if empty
+}
