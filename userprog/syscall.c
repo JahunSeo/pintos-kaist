@@ -149,7 +149,7 @@ int process_add_file (struct file *file) {
 	struct thread *curr = thread_current();
 	if (curr->next_fd >= FDT_ENTRY_MAX) {
 		// _exit(-1);	
-		return TID_ERROR;	
+		return NULL;	
 	}
 	/* 현재 thread의 fdt에 새로운 파일 추가 */
 	int fd = curr->next_fd;
@@ -164,15 +164,23 @@ int process_add_file (struct file *file) {
 struct file *process_get_file (int fd) {
 	/* fd 값이 유효한지 확인 */
 	if (fd < 0 || fd >= FDT_ENTRY_MAX) {
-		return TID_ERROR;
+		return NULL;
 	}
-	/* 현재 thread의 fdt 확인 */
-	struct thread *curr = thread_current();
+	/* 현재 thread의 fdt에서 fd 위치에 값이 있는지 확인 */
 	struct file *file;	
-	if (file = curr->fdt[fd] == NULL) {
-		return TID_ERROR;
+	if (file = thread_current()->fdt[fd] == NULL) {
+		return NULL;
 	}
 	return file;
+}
+
+void process_close_file (int fd) {
+	/* fd 값이 유효한지 확인 */
+	if (fd < 0 || fd >= FDT_ENTRY_MAX) {
+		return;
+	}
+	/* sdt에서 값 제거 */
+	thread_current()->fdt[fd] = NULL;
 }
 
 
