@@ -113,6 +113,7 @@ struct thread {
 	struct intr_frame parent_if;
 	struct semaphore fork_sema;
 	/*file descripter table*/
+
 	struct file **FDT;
 	int fd_total;
 

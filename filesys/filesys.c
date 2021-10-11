@@ -81,7 +81,6 @@ struct file *
 filesys_open (const char *name) {
 	struct dir *dir = dir_open_root (); /* root 디렉터리 inode를 open_inodes 리스트에 추가 */
 	struct inode *inode = NULL;
-
 	if (dir != NULL)
 		dir_lookup (dir, name, &inode); /* 디렉터리 엔트리를 검색, 파일의 inode 를 open_inodes 리스트에 추가*/
 	dir_close (dir);

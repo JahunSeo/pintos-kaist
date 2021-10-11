@@ -31,7 +31,7 @@ int write (int fd, const void *buffer, unsigned length);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
-
+struct file *find_file_by_fd(int fd);
 
 /* System call.
  *
@@ -97,9 +97,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		f->R.rax = open(f->R.rdi);
 		break;
 
-	// case SYS_CLOSE:
-	// 	close(f->R.rdi);
-	// 	break;
+	case SYS_CLOSE:
+		close(f->R.rdi);
+		break;
 
 	case SYS_EXEC:
 		if (exec(f->R.rdi) == -1)
@@ -196,17 +196,32 @@ int open (const char *file)
 	is_useradd(file);
 	struct file *fileobj = filesys_open(file);
 
-	if (fileobj == NULL)
-		return -1;
-
+	if (fileobj == NULL){
+		return -1;}
+	
 	int fd = add_file_to_fdt(fileobj);
-
+	
+	// int fd = 3;
 	// FDT full
 	if (fd == -1)
 		file_close(fileobj);
 
 	return fd;
 }
+
+
+// Closes file descriptor fd. Ignores NULL file. Returns nothing.
+void close(int fd)
+{
+	struct file *fileobj = find_file_by_fd(fd);
+	if (fileobj == NULL)
+		return;
+
+	remove_file_from_fdt(fd);
+	file_close(fileobj);
+}
+
+
 
 /*SYSCALL HELPER FUNCTION */
 // Find open spot in current thread's fdt and put file in it. Returns the fd.
@@ -222,15 +237,15 @@ int add_file_to_fdt(struct file *file)
 	int n = 0;
 	while (fdt[n])
 		n++;
-
 	fdt[n] = file;
-	cur->fd_total++;
+	(cur->fd_total)++;
 	return n;
 }
 
 // Project 2-4. File descriptor
 // Check if given fd is valid, return cur->fdTable[fd]
-static struct file *find_file_by_fd(int fd)
+
+struct file *find_file_by_fd(int fd)
 {
 	struct thread *cur = thread_current();
 
@@ -239,4 +254,16 @@ static struct file *find_file_by_fd(int fd)
 		return NULL;
 
 	return cur->FDT[fd]; // automatically returns NULL if empty
+}
+
+// Check for valid fd and do cur->fdTable[fd] = NULL. Returns nothing
+void remove_file_from_fdt(int fd)
+{
+	struct thread *cur = thread_current();
+
+	// Error - invalid fd
+	if (fd < 0 || fd >= 64)
+		return;
+
+	cur->FDT[fd] = NULL;
 }
