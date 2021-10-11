@@ -30,6 +30,9 @@ void syscall_handler (struct intr_frame *);
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 
 void check_address(const char *addr);
+int process_add_file (struct file *file);
+struct file *process_get_file (int fd);
+void process_close_file (int fd);
 
 void _halt (void);
 void _exit (int status);
