@@ -148,14 +148,12 @@ void check_address(const char *uaddr) {
 
 /* 파일 객체의 주소값을 FDT에 추가하기 */
 int process_add_file (struct file *file) {
-	/* file의 주소값이 유효한지 확인 */
-	check_address(file);
 	/* 현재 thread의 fdt와 next_fd 확인
 		- FDT에 추가 가능한 파일 개수가 가득 찼는지 확인
 	*/
 	struct thread *curr = thread_current();
 	if (curr->next_fd >= FDT_ENTRY_MAX) {
-		return NULL;	
+		return TID_ERROR;	
 	}
 	/* 현재 thread의 fdt에 새로운 파일 추가 */
 	int fd = curr->next_fd;
@@ -264,13 +262,15 @@ bool _remove (const char *file_name) {
 
 int _open (const char *file_name) {
 	check_address(file_name);
-	struct file*;
-	if (file = filesys_open(file_name) == NULL) {
+	struct file* file = filesys_open(file_name);
+
+	if (file == NULL) {
 		return TID_ERROR;
 	}
-	int fd;
-	if (fd = process_add_file(file) == NULL) {
-		return TID_ERROR;
+	int fd = process_add_file(file);
+
+	if (fd == TID_ERROR) {
+		file_close (file);
 	}
 	return fd;
 }
