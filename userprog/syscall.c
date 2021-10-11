@@ -93,25 +93,23 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 
 		case SYS_REMOVE:                 /* Delete a file. */
-			// printf("  SYS_REMOVE called!\n");
+			f->R.rax = _remove((char *) f->R.rdi);
 			break;
 
 		case SYS_OPEN:                   /* Open a file. */
-			// printf("  SYS_OPEN called!\n");
+			f->R.rax = _open((char *) f->R.rdi);
 			break;
 
 		case SYS_FILESIZE:               /* Obtain a file's size. */
-			// printf("  SYS_FILESIZE called!\n");
+			f->R.rax = _filesize(f->R.rdi);
 			break;
 
 		case SYS_READ:                   /* Read from a file. */
-			// printf("  SYS_READ called!\n");
+			f->R.rax = _read(f->R.rdi, (char *) f->R.rsi, f->R.rdx);
 			break;
 
 		case SYS_WRITE:                  /* Write to a file. */
-			// printf("  SYS_WRITE called!\n");
 			f->R.rax = _write(f->R.rdi, (char *) f->R.rsi, f->R.rdx);
-			// power_off ();
 			break;
 
 		case SYS_SEEK:                   /* Change position in a file. */
@@ -123,7 +121,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 
 		case SYS_CLOSE:                  /* Close a file. */
-			// printf("  SYS_CLOSE called!\n");
+			_close(f->R.rdi);
 			break;
 
 		default:
@@ -157,7 +155,7 @@ int process_add_file (struct file *file) {
 	*/
 	struct thread *curr = thread_current();
 	if (curr->next_fd >= FDT_ENTRY_MAX) {
-		return NULL;	
+		return;	
 	}
 	/* 현재 thread의 fdt에 새로운 파일 추가 */
 	int fd = curr->next_fd;
@@ -166,7 +164,7 @@ int process_add_file (struct file *file) {
 		- process_close_file에서의 처리에 의해 기존 next_fd 보다 작은 fd에는 모두 채워져 있으므로
 		- 한 칸 씩 위로 올라가며 빈 칸을 찾음
 	 */
-	while (curr->next_fd < FDT_ENTRY_MAX && furr->fdt[next_fd]) {
+	while (curr->next_fd < FDT_ENTRY_MAX && curr->fdt[curr->next_fd]) {
 		curr->next_fd++;
 	}
 	return fd;
@@ -179,8 +177,8 @@ struct file *process_get_file (int fd) {
 		return NULL;
 	}
 	/* 현재 thread의 fdt에서 fd 위치에 값이 있는지 확인 */
-	struct file *file;	
-	if (file = thread_current()->fdt[fd] == NULL) {
+	struct file *file = thread_current()->fdt[fd];
+	if (file == NULL) {
 		return NULL;
 	}
 	return file;
