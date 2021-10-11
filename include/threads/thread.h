@@ -9,7 +9,8 @@
 #ifdef VM
 #include "vm/vm.h"
 #endif
-
+/* added */
+#include "threads/vaddr.h"
 
 /* States in a thread's life cycle. */
 enum thread_status {
@@ -31,6 +32,7 @@ typedef int tid_t;
 
 /* file descriptor related */
 #define FDT_ENTRY_MAX 64
+#define FDT_PAGE_CNT (FDT_ENTRY_MAX + (PGSIZE - 1)) / (PGSIZE)
 
 /* A kernel thread or user process.
  *
