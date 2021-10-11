@@ -40,9 +40,9 @@ int _wait (tid_t pid);
 tid_t _fork (const char* thread_name, struct intr_frame *if_);
 int _exec (const char *file);
 
-bool _create (const char *file, unsigned initial_size);
-bool _remove (const char *file);
-int _open (const char *file);
+bool _create (const char *file_name, unsigned initial_size);
+bool _remove (const char *file_name);
+int _open (const char *file_name);
 int _read (int fd, void *buffer, unsigned size);
 int _filesize (int fd);
 int _write (int fd, const void *buffer, unsigned size);
@@ -155,7 +155,7 @@ int process_add_file (struct file *file) {
 	*/
 	struct thread *curr = thread_current();
 	if (curr->next_fd >= FDT_ENTRY_MAX) {
-		return;	
+		return NULL;	
 	}
 	/* 현재 thread의 fdt에 새로운 파일 추가 */
 	int fd = curr->next_fd;
@@ -252,13 +252,44 @@ int _wait (tid_t pid) {
 	return process_wait(pid);
 }
 
-bool _create (const char *file, unsigned initial_size) {
-	check_address(file);
-	return filesys_create(file, initial_size);
+bool _create (const char *file_name, unsigned initial_size) {
+	check_address(file_name);
+	return filesys_create(file_name, initial_size);
 }
+
+bool _remove (const char *file_name) {
+	check_address(file_name);
+	return filesys_remove(file_name);
+}
+
+int _open (const char *file_name) {
+	check_address(file_name);
+	struct file*;
+	if (file = filesys_open(file_name) == NULL) {
+		return TID_ERROR;
+	}
+	int fd;
+	if (fd = process_add_file(file) == NULL) {
+		return TID_ERROR;
+	}
+	return fd;
+}
+
+int _read (int fd, void *buffer, unsigned size) {
+
+}
+
+int _filesize (int fd) {
+
+}
+
 
 int _write (int fd UNUSED, const void *buffer, unsigned size) {
 	// temporary code to pass args related test case
 	putbuf(buffer, size);
 	return size;
+}
+
+void _close (int fd) {
+
 }
