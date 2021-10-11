@@ -4,6 +4,7 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/loader.h"
+#include "threads/palloc.h"
 #include "userprog/gdt.h"
 #include "threads/flags.h"
 #include "intrinsic.h"
@@ -92,13 +93,15 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		f->R.rax = remove(f->R.rdi);
 		break;
 
+	case SYS_EXEC:
+		if (exec(f->R.rdi) == -1)
+			exit(-1);
+		break;
 
 	default:
 		break;
 	}
-	// TODO: Your implementation goes here.
-	// printf ("system call!\n");
-	// thread_exit ();
+
 }
 
 int write(int fd, const void *buffer, unsigned size)
@@ -135,6 +138,33 @@ tid_t fork(const char *thread_name, struct intr_frame *f){
 
 	return process_fork(thread_name, f);
 }
+
+
+// Run new 'executable' from current process
+// Don't confuse with open! 'open' just opens up any file (txt, executable), 'exec' runs only executable
+// Never returns on success. Returns -1 on fail.
+int exec(const char *file)
+{
+	is_useradd(file);
+
+	// *file address is located at f->R.rdi, when exec, 
+	// cleanup process resource and context before file mapping 
+	// that is the reason of page allocate.
+	int size = strlen(file) + 1;
+	char *fn_copy = palloc_get_page(PAL_ZERO);
+	if (fn_copy == NULL)
+		exit(-1);
+	strlcpy(fn_copy, file, size);
+
+	if (process_exec(fn_copy) == -1){
+		palloc_free_page(fn_copy);  /* fail, resource return */
+		return -1;}
+
+	// Not reachable
+	NOT_REACHED();
+	return 0;
+}
+
 
 
 /*filesys에 구현되어있는 내용임, 나중에 이해할 것.*/

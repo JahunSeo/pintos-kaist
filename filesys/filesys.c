@@ -79,14 +79,14 @@ filesys_create (const char *name, off_t initial_size) {
  * or if an internal memory allocation fails. */
 struct file *
 filesys_open (const char *name) {
-	struct dir *dir = dir_open_root ();
+	struct dir *dir = dir_open_root (); /* root 디렉터리 inode를 open_inodes 리스트에 추가 */
 	struct inode *inode = NULL;
 
 	if (dir != NULL)
-		dir_lookup (dir, name, &inode);
+		dir_lookup (dir, name, &inode); /* 디렉터리 엔트리를 검색, 파일의 inode 를 open_inodes 리스트에 추가*/
 	dir_close (dir);
 
-	return file_open (inode);
+	return file_open (inode); /*메모리에 file 자료구조 할당 및 초기화 */
 }
 
 /* Deletes the file named NAME.
