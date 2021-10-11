@@ -139,7 +139,7 @@ void check_address(const char *uaddr) {
 		}
 }
 
-/* 파일 객체의 주소값을 FDT에 추가 */
+/* 파일 객체의 주소값을 FDT에 추가하기 */
 int process_add_file (struct file *file) {
 	/* file의 주소값이 유효한지 확인 */
 	check_address(file);
@@ -148,19 +148,22 @@ int process_add_file (struct file *file) {
 	*/
 	struct thread *curr = thread_current();
 	if (curr->next_fd >= FDT_ENTRY_MAX) {
-		// _exit(-1);	
 		return NULL;	
 	}
 	/* 현재 thread의 fdt에 새로운 파일 추가 */
 	int fd = curr->next_fd;
 	curr->fdt[fd] = file;
 	/* 다음 빈 칸을 찾아 next_fd로 설정
-		- TODO: 파일이 closed 되었을 때, 그 빈 칸을 활용할 수 있도록 변경
+		- process_close_file에서의 처리에 의해 기존 next_fd 보다 작은 fd에는 모두 채워져 있으므로
+		- 한 칸 씩 위로 올라가며 빈 칸을 찾음
 	 */
-	curr->next_fd++;
+	while (curr->next_fd < FDT_ENTRY_MAX && furr->fdt[next_fd]) {
+		curr->next_fd++;
+	}
 	return fd;
 }
 
+/* FDT에서 fd값으로 파일의 주소값 가져오기 */
 struct file *process_get_file (int fd) {
 	/* fd 값이 유효한지 확인 */
 	if (fd < 0 || fd >= FDT_ENTRY_MAX) {
@@ -174,15 +177,25 @@ struct file *process_get_file (int fd) {
 	return file;
 }
 
+/* FDT에서 fd값으로 파일의 주소값 제거하기 */
 void process_close_file (int fd) {
-	/* fd 값이 유효한지 확인 */
-	if (fd < 0 || fd >= FDT_ENTRY_MAX) {
+	/* fd 값이 유효한지 확인
+		- 일단 stdin, stdout은 삭제 불가 처리
+	 */
+	if (fd < 2 || fd >= FDT_ENTRY_MAX) {
 		return;
 	}
 	/* sdt에서 값 제거 */
-	thread_current()->fdt[fd] = NULL;
+	struct thread *curr = thread_current();
+	curr->fdt[fd] = NULL;
+	/* next_fd 업데이트
+		- next_fd를 전체 비어있는 fd 중 가장 작은 값으로 유지
+		- 즉, next_fd 아래의 값은 모두 채워져 있음
+	 */
+	if (fd < curr->next_fd) {
+		curr->next_fd = fd;
+	}
 }
-
 
 void _halt (void) {
 	power_off();
