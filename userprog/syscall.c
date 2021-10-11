@@ -8,6 +8,8 @@
 #include "threads/flags.h"
 #include "intrinsic.h"
 #include "userprog/process.h"
+#include "filesys/filesys.h"
+#include "filesys/file.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -66,9 +68,14 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
 		break;
 	
+	case SYS_CREATE:
+		f->R.rax = create(f->R.rdi, f->R.rsi);
+		break;
+
 	case SYS_HALT:
 		halt();
-		break;	
+		break;
+		
 	case SYS_EXIT:
 		exit(f->R.rdi);
 		break;
@@ -80,6 +87,11 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	case SYS_FORK:
 		f->R.rax = fork(f->R.rdi, f);
 		break;
+
+	case SYS_REMOVE:
+		f->R.rax = remove(f->R.rdi);
+		break;
+
 
 	default:
 		break;
@@ -98,7 +110,7 @@ int write(int fd, const void *buffer, unsigned size)
 void exit(int status)
 {
 	struct thread *cur = thread_current();
-	cur->exit_status = status;
+	cur->exit_status = status;    // kernal이 exit 하는 경우에도 이쪽 route 탄다.
 
 	printf("%s: exit(%d)\n", thread_name(), status); // Process Termination Message
 	thread_exit();
@@ -123,3 +135,21 @@ tid_t fork(const char *thread_name, struct intr_frame *f){
 
 	return process_fork(thread_name, f);
 }
+
+
+/*filesys에 구현되어있는 내용임, 나중에 이해할 것.*/
+// Creates a new file called file initially initial_size bytes in size.
+// Returns true if successful, false otherwise
+bool create(const char *file, unsigned initial_size)
+{
+	is_useradd(file);
+	return filesys_create(file, initial_size);
+}
+
+// Deletes the file called 'file'. Returns true if successful, false otherwise.
+bool remove(const char *file)
+{
+	is_useradd(file);
+	return filesys_remove(file);
+}
+
