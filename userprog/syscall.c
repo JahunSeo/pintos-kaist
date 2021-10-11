@@ -280,7 +280,11 @@ int _read (int fd, void *buffer, unsigned size) {
 }
 
 int _filesize (int fd) {
-
+	struct file* file = process_get_file(fd);
+	if (file == NULL) {
+		return TID_ERROR;
+	}
+	return file_length(file);
 }
 
 
