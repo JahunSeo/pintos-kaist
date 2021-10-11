@@ -216,6 +216,8 @@ thread_create (const char *name, int priority,
 	 */
 	// printf("[thread_create]  %d, %d, %p \n", PAL_ZERO, FDT_PAGE_CNT, t->fdt);
 	t->fdt = (struct file**) palloc_get_multiple(PAL_ZERO, FDT_PAGE_CNT);
+	t->fdt[0] = NULL; // 더미 주소값은 무엇으로 처리해주어야 좋을까?
+	t->fdt[1] = NULL;
 	t->next_fd = 2; 
 
 	/* Call the kernel_thread if it scheduled.

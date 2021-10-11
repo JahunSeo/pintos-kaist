@@ -139,6 +139,24 @@ void check_address(const char *uaddr) {
 		}
 }
 
+/* 파일 객체의 주소값을 FDT에 추가 */
+int process_add_file (struct file *file) {
+	/* file의 주소값이 유효한지 확인 */
+	check_address(file);
+	/* 현재 thread의 fdt와 next_fd 확인
+		- FDT에 추가 가능한 파일 개수가 가득 찼는지 확인
+	*/
+	struct thread *curr = thread_current();
+	if (curr->next_fd > FDT_ENTRY_MAX) {
+		_exit(-1);		
+	}
+	/* 현재 thread의 fdt에 새로운 파일 추가 */
+	curr->fdt[curr->next_fd] = file;
+	/* next_fd를 1 증가시킴 */
+	curr->next_fd++;
+}
+
+
 void _halt (void) {
 	power_off();
 }
