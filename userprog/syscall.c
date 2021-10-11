@@ -326,5 +326,5 @@ int _write (int fd UNUSED, const void *buffer, unsigned size) {
 }
 
 void _close (int fd) {
-
+	process_close_file(fd);
 }
