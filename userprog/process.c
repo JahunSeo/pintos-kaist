@@ -80,7 +80,7 @@ initd (void *f_name) {
 /* Clones the current process as `name`. Returns the new process's thread id, or
  * TID_ERROR if the thread cannot be created. */
 tid_t
-process_fork (const char *name, struct intr_frame *if_ UNUSED) {
+process_fork (const char *name, struct intr_frame *if_) {
 	/* Clone current thread to new thread.*/
 	// parent(현재 thread)의 상태를 parent_if에 보관 (나중에 child가 사용할 것)
 	struct thread *curr = thread_current();
@@ -310,7 +310,7 @@ process_exit (void) {
 
 	process_cleanup ();
 
-	
+
 
 	/* parent가 현재 thread를 wait하고 있었다면, 종료되었음을 알림 
 		- parent가 wait을 걸기 전에 child가 먼저 종료되었을 수도 있음
