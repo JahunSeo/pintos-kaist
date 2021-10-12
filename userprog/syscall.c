@@ -348,7 +348,9 @@ void _close (int fd) {
 	struct file *file = process_get_file(fd);
 	if (file == NULL) 
 		return
-	file_close(file);
+	if (fd >= 2) {
+		file_close(file);
+	}
 	process_close_file(fd);
 }
 
