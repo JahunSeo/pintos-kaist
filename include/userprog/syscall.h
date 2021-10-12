@@ -25,4 +25,6 @@ void _close (int fd);
 void _seek (int fd, unsigned position);
 unsigned _tell (int fd);
 
+struct lock filesys_lock; // use global lock to avoid race condition on file
+
 #endif /* userprog/syscall.h */

@@ -199,12 +199,9 @@ __do_fork (void *aux) {
 	 * 이 때, thread_create에서 fdt와 next_fd는 초기화가 된 상태
 	 * 그러므로 parent의 fdt와 next_fd를 가져와 붙여주어야 함
 	 * */
-	// next_fd, max_fd 가져오기
-	current->next_fd = parent->next_fd;	
-	current->max_fd = parent->max_fd;	
 	// fdt 가져오기: parent fdt의 file들을 current fdt에서 duplicate (아직 dup 를 고려하지 않음)
 	struct file *orig_file;
-	for (int i = 0; i <= current->max_fd; i++) {
+	for (int i = 0; i <= parent->max_fd; i++) {
 		orig_file = parent->fdt[i];
 		if (i < 2) {
 			current->fdt[i] = orig_file;			
@@ -212,6 +209,10 @@ __do_fork (void *aux) {
 			current->fdt[i] = (struct file*) file_duplicate(orig_file);
 		}
 	}
+	// next_fd, max_fd 가져오기
+	current->next_fd = parent->next_fd;	
+	current->max_fd = parent->max_fd;	
+
 
 	process_init ();
 
