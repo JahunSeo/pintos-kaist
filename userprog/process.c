@@ -310,13 +310,15 @@ process_exit (void) {
 
 	process_cleanup ();
 
+	
+
 	/* parent가 현재 thread를 wait하고 있었다면, 종료되었음을 알림 
 		- parent가 wait을 걸기 전에 child가 먼저 종료되었을 수도 있음
 	*/ 
 	sema_up(&curr->wait_sema);
-	// parent가 현재 thread를 회수할 때까지 thread_exit하지 않고 기다림 (exit_status를 전달하기 위함)
+	/* parent가 현재 thread를 회수할 때까지 thread_exit하지 않고 기다림 (exit_status를 전달하기 위함) */
 	sema_down(&curr->free_sema);
-	// parent가 회수한 뒤 thread_exit의 남은 부분이 실행됨
+	/* parent가 회수한 뒤 thread_exit의 남은 부분이 실행됨 */
 }
 
 /* Free the current process's resources. */
