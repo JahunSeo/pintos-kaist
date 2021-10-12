@@ -286,10 +286,6 @@ int write(int fd, const void *buffer, unsigned size)
 	if (fileobj == NULL)
 		return -1;
 		
-	// if (fileobj->deny_write==true){
-	// 	exit(0);
-	// }
-
 	struct thread *cur = thread_current();
 
 	if (fileobj == STDOUT)

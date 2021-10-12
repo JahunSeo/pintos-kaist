@@ -2,6 +2,7 @@
 #define FILESYS_FILE_H
 
 #include "filesys/off_t.h"
+#include "filesys/inode.h"
 #include <list.h>
 
 /* An open file. */

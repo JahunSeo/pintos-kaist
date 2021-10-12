@@ -345,6 +345,8 @@ process_exit (void) {
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
+	file_close (curr->running);  /* 다른 executable로 실행중이 아니라면, inode도 삭제되서 리셋되고, inode deny_write_cnt도 reset된다.  */
+
 	process_cleanup ();
 
 	sema_up(&curr->wait_sema);
@@ -484,12 +486,15 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* Open executable file. */
 	file = filesys_open (file_name);
+
+
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", file_name);
 		goto done;
 	}
-
-	// file_deny_write(file); /*   rox     */
+	
+	file_deny_write(file); /*   rox     */
+	t->running = file;
 
 	/* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -574,7 +579,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	// hex_dump(if_->rsp, if_->rsp, USER_STACK - (uint64_t)*rspp, true);
 done:
 	/* We arrive here whether the load is successful or not. */
-	file_close (file);
+	/***********File close should have done when executables is closed*********/
 	return success;
 }
 

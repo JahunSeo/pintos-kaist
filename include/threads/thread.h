@@ -124,7 +124,8 @@ struct thread {
 	struct file **FDT;
 	int fd_total;
 	int fd_max;
-
+	
+	struct file *running;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
