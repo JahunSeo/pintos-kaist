@@ -163,13 +163,18 @@ int process_add_file (struct file *file) {
 	/* 현재 thread의 fdt에 새로운 파일 추가 */
 	int fd = curr->next_fd;
 	curr->fdt[fd] = file;
-	/* 다음 빈 칸을 찾아 next_fd로 설정
+	/* next_fd 업데이트: 다음 빈 칸을 찾아 next_fd로 설정
 		- process_close_file에서의 처리에 의해 기존 next_fd 보다 작은 fd에는 모두 채워져 있으므로
 		- 한 칸 씩 위로 올라가며 빈 칸을 찾음
 	 */
 	while (curr->next_fd < FDT_ENTRY_MAX && curr->fdt[curr->next_fd]) {
 		curr->next_fd++;
 	}
+	/* max_fd 업데이트: 새로운 파일의 fd값과 비교하여 max_fd값 설정 */
+	if (fd > curr->max_fd) {
+		curr->max_fd = fd;
+	}
+
 	return fd;
 }
 
@@ -204,6 +209,10 @@ void process_close_file (int fd) {
 	 */
 	if (fd < curr->next_fd) {
 		curr->next_fd = fd;
+	}
+	/* max_fd 업데이트: 맨 마지막 파일을 삭제한 경우 */
+	if (fd >= curr->max_fd) {
+		curr->max_fd--;
 	}
 }
 
