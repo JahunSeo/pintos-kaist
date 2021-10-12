@@ -159,3 +159,10 @@ file_tell (struct file *file) {
 	ASSERT (file != NULL);
 	return file->pos;
 }
+
+/* file의 deny_write 상태 확인하기 */
+bool
+file_is_writable(struct file* file) {
+	ASSERT (file != NULL);
+	return !file->deny_write;
+}
