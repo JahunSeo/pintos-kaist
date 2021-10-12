@@ -32,27 +32,6 @@ void syscall_handler (struct intr_frame *);
 #define MSR_LSTAR 0xc0000082        /* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 
-void check_address(const char *addr);
-int process_add_file (struct file *file);
-struct file *process_get_file (int fd);
-void process_close_file (int fd);
-
-void _halt (void);
-void _exit (int status);
-int _wait (tid_t pid);
-tid_t _fork (const char* thread_name, struct intr_frame *if_);
-int _exec (const char *file);
-
-bool _create (const char *file_name, unsigned initial_size);
-bool _remove (const char *file_name);
-int _open (const char *file_name);
-int _read (int fd, void *buffer, unsigned size);
-int _filesize (int fd);
-int _write (int fd, const void *buffer, unsigned size);
-void _close (int fd);
-void _seek (int fd, unsigned position);
-unsigned _tell (int fd);
-
 void
 syscall_init (void) {
 	write_msr(MSR_STAR, ((uint64_t)SEL_UCSEG - 0x10) << 48  |
