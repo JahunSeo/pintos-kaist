@@ -178,12 +178,16 @@ void process_close_file (int fd) {
 	/* fd 값이 유효한지 확인
 		- 일단 stdin, stdout은 삭제 불가 처리
 	 */
-	if (fd < 2 || fd >= FDT_ENTRY_MAX) {
+	if (fd >= FDT_ENTRY_MAX) {
 		return;
 	}
 	/* sdt에서 값 제거 */
 	struct thread *curr = thread_current();
 	curr->fdt[fd] = NULL;
+	/* stdin과 stdout를 삭제하더라도 next_fd가 0,1 자리에는 들어오지 못하도록 비워둠 (is it right?) */
+	if (fd < 2) {
+		return;
+	}
 	/* next_fd 업데이트
 		- next_fd를 전체 비어있는 fd 중 가장 작은 값으로 유지
 		- 즉, next_fd 아래의 값은 모두 채워져 있음
@@ -273,6 +277,11 @@ int _open (const char *file_name) {
 int _read (int fd, void *buffer, unsigned size) {
 	/* buffer로 들어온 주소값이 유효한지 확인 */
 	check_address(buffer);
+	/* 현재 thread의 FDT에서 fd 값이 유효한지 확인 */
+	struct file *file = process_get_file(fd);
+	if (file == NULL) {
+		return TID_ERROR;
+	}
 	/* readcnt 초기화 */
 	int readcnt = 0;
 	/* fd가 STDIN인 경우 처리 */
@@ -293,12 +302,7 @@ int _read (int fd, void *buffer, unsigned size) {
 	else if (fd == 1) {
 		return TID_ERROR;
 	}
-	/* 현재 thread의 FDT에서 fd 값이 유효한지 확인 */
-	struct file *file = process_get_file(fd);
-	if (file == NULL) {
-		return TID_ERROR;
-	}
-
+	/* 그 외의 파일 처리 */
 	lock_acquire(&filesys_lock);
 	readcnt = file_read(file, buffer, size);
 	lock_release(&filesys_lock);
@@ -317,6 +321,11 @@ int _filesize (int fd) {
 int _write (int fd, const void *buffer, unsigned size) {
 	/* buffer로 들어온 주소값이 유효한지 확인 */
 	check_address(buffer);
+	/* 현재 thread의 FDT에서 fd 값이 유효한지 확인 */
+	struct file *file = process_get_file(fd);
+	if (file == NULL) {
+		return TID_ERROR;
+	}
 	/* writecnt 초기화 */
 	int writecnt = 0;
 	/* fd가 STDIN인 경우 처리 */
@@ -328,11 +337,7 @@ int _write (int fd, const void *buffer, unsigned size) {
 		putbuf(buffer, size);
 		return size;
 	}
-	/* 현재 thread의 FDT에서 fd 값이 유효한지 확인 */
-	struct file *file = process_get_file(fd);
-	if (file == NULL) {
-		return TID_ERROR;
-	}
+	/* 그 외의 파일 처리 */
 	lock_acquire(&filesys_lock);
 	writecnt = file_write(file, buffer, size);
 	lock_release(&filesys_lock);
