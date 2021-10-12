@@ -201,14 +201,17 @@ __do_fork (void *aux) {
 	 * */
 	// fdt 가져오기: parent fdt의 file들을 current fdt에서 duplicate (아직 dup 를 고려하지 않음)
 	struct file *orig_file;
-	for (int i = 0; i < FDT_ENTRY_MAX; i++) {
+	for (int i = 2; i < FDT_ENTRY_MAX; i++) {
 		orig_file = parent->fdt[i];
-		if (orig_file != NULL) {
+		if (i < 2) {
+			current->fdt[i] = orig_file;			
+		} else if (orig_file != NULL) {
 			current->fdt[i] = (struct file*) file_duplicate(orig_file);
 		}
 	}
 	// next_fd 가져오기
 	current->next_fd = parent->next_fd;	
+	current->max_fd = parent->max_fd;
 
 	process_init ();
 
