@@ -129,6 +129,8 @@ struct thread {
 	struct file** fdt;					/* "'파일의 주소값'들을 담은 배열"에 대한 주소값 */
 	int next_fd;						/* 새로운 파일을 open 시 그 파일에 부여할 fd 값 */
 	int max_fd;							/* 파일이 들어가 있는 fd의 최대값 (fork, exit에서 활용) */
+	/* executable 관련 멤버 */
+	struct file* running_file;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */

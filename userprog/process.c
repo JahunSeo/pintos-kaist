@@ -323,6 +323,9 @@ process_exit (void) {
 	}
 	// fdt에 할당된 kernel 영역의 메모리 회수하기
 	palloc_free_multiple(curr->fdt, FDT_PAGE_CNT);
+	// 실행 중이던 파일이 있다면 종료하기
+	file_close(curr->running_file);
+
 	process_cleanup ();
 
 	/* parent가 현재 thread를 wait하고 있었다면, 종료되었음을 알림 
@@ -476,6 +479,9 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 	}
 
+	t->running_file = file;
+	file_deny_write(file);
+
 	/* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
 			|| memcmp (ehdr.e_ident, "\177ELF\2\1\1", 7)
@@ -553,10 +559,9 @@ load (const char *file_name, struct intr_frame *if_) {
 	argument_stack(argv, argc, if_);
 	// hex_dump(if_->rsp, if_->rsp, USER_STACK - if_->rsp, true); 
 	success = true;
-
 done:
 	/* We arrive here whether the load is successful or not. */
-	file_close (file);
+	// file_close (file); // process_exit() 시점에 종료되도록 변경
 	return success;
 }
 

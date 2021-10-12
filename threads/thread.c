@@ -606,6 +606,9 @@ init_thread (struct thread *t, const char *name, int priority) {
 	sema_init(&t->fork_sema, 0);	/* parent가 down한 뒤 child(current thread)가 up */
 	sema_init(&t->wait_sema, 0);	/* parent가 down한 뒤 child(current thread)가 up */
 	sema_init(&t->free_sema, 0);	/* child(current thread)가 down한 뒤 parent가 up */
+
+	/* 실행 중인 파일 관련 */
+	t->running_file = NULL;
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
