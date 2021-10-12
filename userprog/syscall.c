@@ -296,8 +296,6 @@ int _read (int fd, void *buffer, unsigned size) {
 	if (file == NULL) {
 		return TID_ERROR;
 	}
-	/* 읽는 동안 쓰기 제한 */
-	file_deny_write(file);
 	readcnt = file_read(file, buffer, size);
 	return readcnt;
 }
@@ -330,11 +328,7 @@ int _write (int fd, const void *buffer, unsigned size) {
 	if (file == NULL) {
 		return TID_ERROR;
 	}
-	/* 현재 파일이 작성 가능한 상태인지 확인하여 작성 불가능할 경우 0 리턴 */
-	// printf("[_write] file 1 %p %d \n", file, file_is_writable(file));
-	if (!file_is_writable(file)) {
-		return writecnt; // 0		
-	}
+	
 	writecnt = file_write(file, buffer, size);
 	return writecnt;
 }
