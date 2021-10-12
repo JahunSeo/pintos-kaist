@@ -192,7 +192,7 @@ __do_fork (void *aux) {
 	 * TODO:       from the fork() until this function successfully duplicates
 	 * TODO:       the resources of parent.*/
 
-/***********fork file descriptor table duplication**********/
+/*************fork file descriptor table duplication*************/
 	for (int i=0; i<=parent->fd_max; i++)
 	{
 		struct file *file=parent->FDT[i];
@@ -209,7 +209,7 @@ __do_fork (void *aux) {
 	}	
 	current->fd_total = parent->fd_total;
 	current->fd_max = parent->fd_max;
-/**********************************************************/
+/**************************************************************/
 	process_init ();
 
 
@@ -488,6 +488,8 @@ load (const char *file_name, struct intr_frame *if_) {
 		printf ("load: %s: open failed\n", file_name);
 		goto done;
 	}
+
+	// file_deny_write(file); /*   rox     */
 
 	/* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
