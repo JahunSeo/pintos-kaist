@@ -201,7 +201,7 @@ __do_fork (void *aux) {
 	 * */
 	// fdt 가져오기: parent fdt의 file들을 current fdt에서 duplicate (아직 dup 를 고려하지 않음)
 	struct file *orig_file;
-	for (int i = 2; i < parent->max_fd; i++) {
+	for (int i = 2; i <= parent->max_fd; i++) {
 		orig_file = parent->fdt[i];
 		if (i < 2) {
 			current->fdt[i] = orig_file;			
@@ -312,7 +312,7 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 	// fdt에서 열려있는 파일 닫기
 	struct file *file;
-	for (int i = 2; i < curr->max_fd; i++) {
+	for (int i = 2; i <= curr->max_fd; i++) {
 		file = curr->fdt[i];
 		if (i < 2) {
 			curr->fdt[i] = NULL; // TODO			
