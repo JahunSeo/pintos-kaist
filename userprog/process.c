@@ -192,6 +192,24 @@ __do_fork (void *aux) {
 	 * TODO:       from the fork() until this function successfully duplicates
 	 * TODO:       the resources of parent.*/
 
+/***********fork file descriptor table duplication**********/
+	for (int i=0; i<=parent->fd_max; i++)
+	{
+		struct file *file=parent->FDT[i];
+		if (file==NULL)
+			continue;
+		
+		struct file *new_file;
+		if (file == STDIN || file == STDOUT || file == STDERR)
+			new_file = file; 
+		else 
+			new_file = file_duplicate(file);
+		
+		current->FDT[i]=new_file;
+	}	
+	current->fd_total = parent->fd_total;
+	current->fd_max = parent->fd_max;
+/**********************************************************/
 	process_init ();
 
 

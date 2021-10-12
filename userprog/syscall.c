@@ -332,6 +332,10 @@ int add_file_to_fdt(struct file *file)
 		n++;
 	fdt[n] = file;
 	(cur->fd_total)++;
+
+	if (cur->fd_max<n)
+		cur->fd_max=n;
+
 	return n;
 }
 

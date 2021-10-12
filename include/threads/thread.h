@@ -123,6 +123,7 @@ struct thread {
 
 	struct file **FDT;
 	int fd_total;
+	int fd_max;
 
 
 #ifdef USERPROG
