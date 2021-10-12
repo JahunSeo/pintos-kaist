@@ -201,7 +201,7 @@ __do_fork (void *aux) {
 	 * */
 	// fdt 가져오기: parent fdt의 file들을 current fdt에서 duplicate (아직 dup 를 고려하지 않음)
 	struct file *orig_file;
-	for (int i = 2; i < FDT_ENTRY_MAX; i++) {
+	for (int i = 2; i < parent->max_fd; i++) {
 		orig_file = parent->fdt[i];
 		if (i < 2) {
 			current->fdt[i] = orig_file;			
@@ -209,7 +209,7 @@ __do_fork (void *aux) {
 			current->fdt[i] = (struct file*) file_duplicate(orig_file);
 		}
 	}
-	// next_fd 가져오기
+	// next_fd, max_fd 가져오기
 	current->next_fd = parent->next_fd;	
 	current->max_fd = parent->max_fd;
 
@@ -310,10 +310,19 @@ process_exit (void) {
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
-
+	// fdt에서 열려있는 파일 닫기
+	struct file *file;
+	for (int i = 2; i < curr->max_fd; i++) {
+		file = curr->fdt[i];
+		if (i < 2) {
+			curr->fdt[i] = NULL; // TODO			
+		} else {
+			file_close(file);
+		}
+	}
+	// fdt에 할당된 kernel 영역의 메모리 회수하기
+	palloc_free_multiple(curr->fdt, FDT_PAGE_CNT);
 	process_cleanup ();
-
-
 
 	/* parent가 현재 thread를 wait하고 있었다면, 종료되었음을 알림 
 		- parent가 wait을 걸기 전에 child가 먼저 종료되었을 수도 있음
