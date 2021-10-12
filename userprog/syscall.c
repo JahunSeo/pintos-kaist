@@ -16,7 +16,7 @@ void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
 
-/* Projects 2 and later. */
+/* Projects 2 */
 void halt (void) NO_RETURN;
 void exit (int status) NO_RETURN;
 // pid_t fork (const char *thread_name);
@@ -106,17 +106,19 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			exit(-1);
 		break;
 
+	case SYS_FILESIZE:
+		f->R.rax = filesize(f->R.rdi);
+		break;
+
+	case SYS_READ:
+		f->R.rax = read(f->R.rdi, f->R.rsi, f->R.rdx);
+		break;
+
 	default:
 		break;
 	}
 
 }
-
-int write(int fd, const void *buffer, unsigned size)
-{
-	putbuf(buffer, size);
-}
-
 
 void exit(int status)
 {
@@ -201,8 +203,6 @@ int open (const char *file)
 	
 	int fd = add_file_to_fdt(fileobj);
 	
-	// int fd = 3;
-	// FDT full
 	if (fd == -1)
 		file_close(fileobj);
 
@@ -218,12 +218,105 @@ void close(int fd)
 		return;
 
 	remove_file_from_fdt(fd);
+
 	file_close(fileobj);
 }
 
 
+// Returns the size, in bytes, of the file open as fd.
+int filesize(int fd)
+{
+	struct file *fileobj = find_file_by_fd(fd);
+	if (fileobj == NULL)
+		return -1;
+	return file_length(fileobj);
+}
 
+// Reads size bytes from the file open as fd into buffer.
+// Returns the number of bytes actually read (0 at end of file), or -1 if the file could not be read
+int read(int fd, void *buffer, unsigned size)
+{
+	is_useradd(buffer);
+	int ret;
+	struct thread *cur = thread_current();
+
+	struct file *fileobj = find_file_by_fd(fd);
+	if (fileobj == NULL)
+		return -1;
+
+	if (fileobj == STDIN)     
+	{
+		int i;
+		unsigned char *buf = buffer;
+		for (i = 0; i < size; i++)
+		{
+			char c = input_getc();  
+			*buf++ = c;
+			if (c == '\0')
+				break;
+		}
+		ret = i;
+	}
+	else if (fileobj == STDOUT)  /*write only device*/
+	{
+		ret = -1;
+	}
+	else
+	{
+
+		// lock_acquire(&file_rw_lock);   
+		ret = file_read(fileobj, buffer, size);
+		// lock_release(&file_rw_lock);
+	}
+	return ret;
+}
+
+
+// Writes size bytes from buffer to the open file fd.
+// Returns the number of bytes actually written, or -1 if the file could not be written
+int write(int fd, const void *buffer, unsigned size)
+{
+	is_useradd(buffer);
+	int ret;
+
+	struct file *fileobj = find_file_by_fd(fd);
+	if (fileobj == NULL)
+		return -1;
+
+	struct thread *cur = thread_current();
+
+	if (fileobj == STDOUT)
+	{
+		putbuf(buffer, size);
+		ret = size;
+	}
+	else if (fileobj == STDIN)
+	{
+		ret = -1;
+	}
+	else
+	{
+		// lock_acquire(&file_rw_lock);
+		ret = file_write(fileobj, buffer, size);
+		// lock_release(&file_rw_lock);
+	}
+
+	return ret;
+}
+
+
+
+
+
+
+
+
+
+
+/**************************/
 /*SYSCALL HELPER FUNCTION */
+/**************************/
+
 // Find open spot in current thread's fdt and put file in it. Returns the fd.
 int add_file_to_fdt(struct file *file)
 {
@@ -266,4 +359,5 @@ void remove_file_from_fdt(int fd)
 		return;
 
 	cur->FDT[fd] = NULL;
+	cur->fd_total--;
 }

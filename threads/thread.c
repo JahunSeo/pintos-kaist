@@ -15,6 +15,8 @@
 #include "userprog/process.h"
 #endif
 
+
+
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
@@ -208,6 +210,12 @@ thread_create (const char *name, int priority,
 	struct thread *cur = thread_current();
 	list_push_back(&cur->child_list, &t->child_elem); // new child to caller's list
 
+	t->FDT = palloc_get_multiple(PAL_ZERO, FDT_PAGES);
+	t->fd_total = 2;
+	/* file descriptor 0~2 initially occupied with I/O devices */
+	t->FDT[0] = STDIN;
+	t-> FDT[1] = STDOUT;
+	t-> FDT[2] = STDERR;
 
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */

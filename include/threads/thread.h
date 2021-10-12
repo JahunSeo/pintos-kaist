@@ -29,6 +29,13 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
+#define FDT_PAGES 3	
+
+#define STDIN 999
+#define STDOUT 998
+#define STDERR 997
+
+
 /* A kernel thread or user process.
  *
  * Each thread structure is stored in its own 4 kB page.  The
@@ -182,3 +189,4 @@ int thread_get_load_avg (void);
 void do_iret (struct intr_frame *tf);
 
 #endif /* threads/thread.h */
+
