@@ -76,7 +76,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	case SYS_HALT:
 		halt();
 		break;
-		
+
 	case SYS_EXIT:
 		exit(f->R.rdi);
 		break;
@@ -112,6 +112,10 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 	case SYS_READ:
 		f->R.rax = read(f->R.rdi, f->R.rsi, f->R.rdx);
+		break;
+
+	case SYS_SEEK:
+		seek(f->R.rdi, f->R.rsi);
 		break;
 
 	default:
@@ -156,7 +160,6 @@ tid_t fork(const char *thread_name, struct intr_frame *f){
 int exec(const char *file)
 {
 	is_useradd(file);
-
 	// *file address is located at f->R.rdi, when exec, 
 	// cleanup process resource and context before file mapping 
 	// that is the reason of page allocate.
@@ -282,7 +285,7 @@ int write(int fd, const void *buffer, unsigned size)
 	struct file *fileobj = find_file_by_fd(fd);
 	if (fileobj == NULL)
 		return -1;
-
+		
 	struct thread *cur = thread_current();
 
 	if (fileobj == STDOUT)
@@ -305,11 +308,16 @@ int write(int fd, const void *buffer, unsigned size)
 }
 
 
+// Changes the next byte to be read or written in open file fd to position,
+// expressed in bytes from the beginning of the file (Thus, a position of 0 is the file's start).
+void seek(int fd, unsigned position)
+{
+	struct file *fileobj = find_file_by_fd(fd);
+	if (fileobj == STDIN || fileobj == STDOUT || fileobj == STDERR)
+		return;
+	fileobj->pos = position;
 
-
-
-
-
+}
 
 
 

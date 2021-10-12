@@ -247,10 +247,12 @@ process_exec (void *f_name) {
 	success = load (file_name, &_if);
 
 	/* If load failed, quit. */
-	palloc_free_page (file_name);
+	
 	if (!success)
 		return -1;
 	
+	palloc_free_page (file_name);
+
 	/* Start switched process. */
 	do_iret (&_if);
 	NOT_REACHED ();
