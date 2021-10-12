@@ -347,7 +347,7 @@ int _write (int fd, const void *buffer, unsigned size) {
 void _close (int fd) {
 	struct file *file = process_get_file(fd);
 	if (file == NULL) 
-		return
+		return;
 	if (fd >= 2) {
 		file_close(file);
 	}
