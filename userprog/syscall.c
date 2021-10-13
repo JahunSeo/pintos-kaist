@@ -332,7 +332,7 @@ int add_file_to_fdt(struct file *file)
 	struct file **fdt = cur->FDT; // file descriptor table
 
 	// Error - fdt full
-	if (cur->fd_total >= 64)  /*상수로 정의할 것*/
+	if (cur->fd_total >= 100)  /*상수로 정의할 것*/
 		return -1;
 
 	int n = 0;
@@ -355,7 +355,7 @@ struct file *find_file_by_fd(int fd)
 	struct thread *cur = thread_current();
 
 	// Error - invalid fd
-	if (fd < 0 || fd >= 64)
+	if (fd < 0 || fd > FDCOUNT_LIMIT)
 		return NULL;
 
 	return cur->FDT[fd]; // automatically returns NULL if empty
@@ -367,7 +367,7 @@ void remove_file_from_fdt(int fd)
 	struct thread *cur = thread_current();
 
 	// Error - invalid fd
-	if (fd < 0 || fd >= 64)
+	if (fd < 0 || fd >= FDCOUNT_LIMIT)
 		return;
 
 	cur->FDT[fd] = NULL;

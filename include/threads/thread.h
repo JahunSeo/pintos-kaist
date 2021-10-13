@@ -190,5 +190,7 @@ int thread_get_load_avg (void);
 
 void do_iret (struct intr_frame *tf);
 
+#define FDCOUNT_LIMIT FDT_PAGES *(1 << 9) // Limit fdIdx
+
 #endif /* threads/thread.h */
 

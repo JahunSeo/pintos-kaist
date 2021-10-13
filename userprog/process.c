@@ -75,8 +75,10 @@ initd (void *f_name) {
 
 	process_init ();
 
-	if (process_exec (f_name) < 0)
+	if (process_exec (f_name) < 0){
 		PANIC("Fail to launch initd\n");
+		palloc_free_page(f_name);
+	}
 	NOT_REACHED ();
 }
 
@@ -248,8 +250,8 @@ process_exec (void *f_name) {
 
 	/* If load failed, quit. */
 	
-	if (!success)
-		return -1;
+	if (!success){
+		return -1;}
 	
 	palloc_free_page (file_name);
 
@@ -345,7 +347,15 @@ process_exit (void) {
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
+	// P2-4 Close all opened files
+	// for (int i = 0; i < FDCOUNT_LIMIT; i++)
+	// {
+	// 	close(i);
+	// }
+
 	file_close (curr->running);  /* 다른 executable로 실행중이 아니라면, inode도 삭제되서 리셋되고, inode deny_write_cnt도 reset된다.  */
+
+	palloc_free_multiple(curr->FDT, FDT_PAGES); // out of memory 방지 multi-oom에서 test함
 
 	process_cleanup ();
 
