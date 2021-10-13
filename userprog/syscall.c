@@ -312,8 +312,18 @@ int write(int fd, const void *buffer, unsigned size)
 
 	if (fileobj == STDOUT)
 	{
-		putbuf(buffer, size);
-		ret = size;
+		if (cur->stdout_count == 0)
+		{
+			// Not reachable
+			NOT_REACHED();
+			remove_file_from_fdt(fd);
+			ret = -1;
+		}
+		else
+		{
+			putbuf(buffer, size);
+			ret = size;
+		}
 	}
 	else if (fileobj == STDIN)
 	{

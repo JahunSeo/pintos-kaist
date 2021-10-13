@@ -56,7 +56,6 @@ process_create_initd (const char *file_name) {
 	/*thread name을 file name으로 하기 위한 parsing*/ 
 	strtok_r(file_name, " ", &save_ptr);
 	
-
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
 
@@ -194,34 +193,70 @@ __do_fork (void *aux) {
 	 * TODO:       from the fork() until this function successfully duplicates
 	 * TODO:       the resources of parent.*/
 
+	if (parent->fd_total == FDCOUNT_LIMIT)
+		goto error;
+
+	// Project2-extra) multiple fds sharing same file - use associative map (e.g. dict, hashmap) to duplicate these relationships
+	// other test-cases like multi-oom don't need this feature
+
+	// Project2-extra
+	struct MapElem
+	{
+		uintptr_t key;
+		uintptr_t value;
+	};
+
+	const int MAPLEN = 10;
+	struct MapElem map[10]; // key - parent's struct file * , value - child's newly created struct file *
+	int dupCount = 0;		// index for filling map
+
+
 /*************fork file descriptor table duplication*************/
-	for (int i=0; i<=parent->fd_max; i++)
+	for (int i=0; i< FDCOUNT_LIMIT; i++)
 	{
 		struct file *file=parent->FDT[i];
 		if (file==NULL)
 			continue;
 		
-		struct file *new_file;
-		if (file == STDIN || file == STDOUT || file == STDERR)
-			new_file = file; 
-		else 
-			new_file = file_duplicate(file);
-		
-		current->FDT[i]=new_file;
+		// Project2-extra) linear search on key-pair array
+		// If 'file' is already duplicated in child, don't duplicate again but share it
+		bool found = false;
+		for (int j = 0; j < MAPLEN; j++)
+		{
+			if (map[j].key == file)
+			{
+				found = true;
+				current->FDT[i] = map[j].value;
+				break;
+			}
+		}
+		if (!found)
+		{
+			struct file *new_file;
+			if (file == STDIN || file == STDOUT || file == STDERR)
+				new_file = file; 
+			else 
+				new_file = file_duplicate(file);
+			
+			current->FDT[i]=new_file;
+			if (dupCount < MAPLEN)
+			{
+				map[dupCount].key = file;
+				map[dupCount++].value = new_file;
+			}
+		}
 	}	
 	current->fd_total = parent->fd_total;
 	current->fd_max = parent->fd_max;
 
 /**************************************************************/
-	process_init ();
-
 
 	/*if there is no trouble so far, sema_up so that parents keep going */
 	sema_up(&current->fork_sema);
 
 	/* Finally, switch to the newly created process. */
 	if (succ)
-		do_iret (&if_);
+		do_iret (&if_);   /*명령어 처리 이후 Task로 복구하는 함수*/
 error:
 	current->exit_status = TID_ERROR;
 	sema_up(&current->fork_sema);

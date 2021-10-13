@@ -14,6 +14,8 @@ file_open (struct inode *inode) {
 		file->inode = inode;
 		file->pos = 0;
 		file->deny_write = false;
+		// Project2-extra
+		file->dupcnt = 0; /*초기화*/
 		return file;
 	} else {
 		inode_close (inode);
@@ -38,6 +40,9 @@ file_duplicate (struct file *file) {
 		nfile->pos = file->pos;
 		if (file->deny_write)
 			file_deny_write (nfile);
+		// Project2-extra
+		nfile->dupcnt = file->dupcnt;
+		
 	}
 	return nfile;
 }
