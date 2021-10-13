@@ -109,9 +109,9 @@ syscall_handler (struct intr_frame *f) {
 		case SYS_CLOSE:                  /* Close a file. */
 			_close(f->R.rdi);
 			break;
-
 		default:
 			printf("  DEFAULT do nothing..\n");
+			_exit(TID_ERROR);
 	}
 
 
