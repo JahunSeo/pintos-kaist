@@ -313,7 +313,7 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 	// fdt에서 열려있는 파일 닫기
 	struct file *file;
-	for (int i = 2; i <= curr->max_fd; i++) {
+	for (int i = 0; i <= curr->max_fd; i++) {
 		file = curr->fdt[i];
 		if (i < 2) {
 			curr->fdt[i] = NULL; // TODO			
