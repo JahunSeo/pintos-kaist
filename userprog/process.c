@@ -134,10 +134,18 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 
 	/* 2. Resolve VA from the parent's page map level 4. */
 	parent_page = pml4_get_page (parent->pml4, va);
+	if (parent_page == NULL) {
+		printf("[duplicate_pte] parent_page error\n");
+		return false;
+	}
 
 	/* 3. TODO: Allocate new PAL_USER page for the child and set result to
 	 *    TODO: NEWPAGE. */
 	newpage = palloc_get_page (PAL_USER);
+	if (newpage == NULL) {
+		printf("[duplicate_pte] newpage error\n");
+		return false;
+	}
 
 	/* 4. TODO: Duplicate parent's page to the new page and
 	 *    TODO: check whether parent's page is writable or not (set WRITABLE
@@ -149,6 +157,8 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	 *    permission. */
 	if (!pml4_set_page (current->pml4, va, newpage, writable)) {
 		/* 6. TODO: if fail to insert page, do error handling. */
+		printf("[duplicate_pte] pml4_set_page error\n");
+		palloc_free_page(newpage);
 		return false;
 	}
 	return true;
