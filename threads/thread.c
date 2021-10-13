@@ -211,6 +211,9 @@ thread_create (const char *name, int priority,
 	list_push_back(&cur->child_list, &t->child_elem); // new child to caller's list
 
 	t->FDT = palloc_get_multiple(PAL_ZERO, FDT_PAGES);
+	if (t->FDT == NULL)
+		return TID_ERROR;
+
 	t->fd_total = 3;
 	t->fd_max = 2;
 	/* file descriptor 0~2 initially occupied with I/O devices */

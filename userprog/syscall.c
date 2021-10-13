@@ -362,20 +362,16 @@ int add_file_to_fdt(struct file *file)
 	struct thread *cur = thread_current();
 	struct file **fdt = cur->FDT; // file descriptor table
 
+	// Project2-extra - (multi-oom) Find open spot from the front
+	while (cur->fd_total < FDCOUNT_LIMIT && fdt[cur->fd_total])
+		cur->fd_total++;
+
 	// Error - fdt full
-	if (cur->fd_total >= 100)  /*상수로 정의할 것*/
+	if (cur->fd_total >= FDCOUNT_LIMIT)
 		return -1;
 
-	int n = 0;
-	while (fdt[n])
-		n++;
-	fdt[n] = file;
-	(cur->fd_total)++;
-
-	if (cur->fd_max<n)
-		cur->fd_max=n;
-
-	return n;
+	fdt[cur->fd_total] = file;
+	return cur->fd_total;
 }
 
 // Project 2-4. File descriptor
