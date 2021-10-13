@@ -32,6 +32,7 @@ void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
 struct file *find_file_by_fd(int fd);
+int dup2(int oldfd, int newfd);
 
 /* System call.
  *
@@ -116,6 +117,10 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 	case SYS_SEEK:
 		seek(f->R.rdi, f->R.rsi);
+		break;
+	
+	case SYS_DUP2:
+		f->R.rax = dup2(f->R.rdi, f->R.rsi);
 		break;
 
 	default:
@@ -220,9 +225,26 @@ void close(int fd)
 	if (fileobj == NULL)
 		return;
 
+	struct thread *cur = thread_current();
+
+	if (fd == 0 || fileobj == STDIN)
+	{
+		cur->stdin_count--;
+	}
+	else if (fd == 1 || fileobj == STDOUT)
+	{
+		cur->stdout_count--;
+	}
+
 	remove_file_from_fdt(fd);
 
-	file_close(fileobj);
+	if (fd <= 2 || fileobj == STDOUT || fileobj == STDIN || fileobj == STDERR)
+		return;
+
+	if (fileobj->dupcnt == 0)
+		file_close(fileobj);
+	else
+		fileobj->dupcnt--;
 }
 
 
@@ -303,7 +325,6 @@ int write(int fd, const void *buffer, unsigned size)
 		ret = file_write(fileobj, buffer, size);
 		// lock_release(&file_rw_lock);
 	}
-
 	return ret;
 }
 
@@ -372,4 +393,48 @@ void remove_file_from_fdt(int fd)
 
 	cur->FDT[fd] = NULL;
 	cur->fd_total--;
+}
+
+
+
+
+
+// Creates 'copy' of oldfd into newfd. If newfd is open, close it. Returns newfd on success, -1 on fail (invalid oldfd)
+// After dup2, oldfd and newfd 'shares' struct file, but closing newfd should not close oldfd (important!)
+//
+// 1. oldfd isn't valid  ->  return -1    (newfd must not be closed)
+// 2. oldfd is valid & oldfd == newfd  ->  return newfd  (dup2 does nothing.)
+// 3. Although they are different file descriptors, 
+//    they refer to the same open file description and thus share file offset and status flags; 
+//    for example, if the file offset is modified by using seek on one of the descriptors, 
+//    the offset is also changed for the other.
+
+int dup2(int oldfd, int newfd)
+{
+	struct file *fileobj = find_file_by_fd(oldfd);
+	if (fileobj == NULL)
+		return -1;
+
+	struct file *deadfile = find_file_by_fd(newfd);
+
+	if (oldfd == newfd)
+		return newfd;
+
+	struct thread *cur = thread_current();
+	struct file **fdt = cur->FDT;
+
+	// Don't literally copy, but just increase its count and share the same struct file
+	// [syscall close] Only close it when count == 0
+
+	// Copy stdin or stdout to another fd
+	if (fileobj == STDIN)
+		cur->stdin_count++;
+	else if (fileobj == STDOUT)
+		cur->stdout_count++;
+	else
+		fileobj->dupcnt++;
+
+	close(newfd);
+	fdt[newfd] = fileobj;
+	return newfd;
 }

@@ -211,6 +211,7 @@ __do_fork (void *aux) {
 	}	
 	current->fd_total = parent->fd_total;
 	current->fd_max = parent->fd_max;
+
 /**************************************************************/
 	process_init ();
 
@@ -347,13 +348,14 @@ process_exit (void) {
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
+
+	file_close (curr->running);  /* 다른 executable로 실행중이 아니라면, inode도 삭제되서 리셋되고, inode deny_write_cnt도 reset된다.  */
+
 	// P2-4 Close all opened files
 	// for (int i = 0; i < FDCOUNT_LIMIT; i++)
 	// {
 	// 	close(i);
 	// }
-
-	file_close (curr->running);  /* 다른 executable로 실행중이 아니라면, inode도 삭제되서 리셋되고, inode deny_write_cnt도 reset된다.  */
 
 	palloc_free_multiple(curr->FDT, FDT_PAGES); // out of memory 방지 multi-oom에서 test함
 

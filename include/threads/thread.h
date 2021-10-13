@@ -127,6 +127,11 @@ struct thread {
 	
 	struct file *running;
 
+		// 2-extra - count the number of open stdin/stdout
+	// dup2 may copy stdin or stdout; stdin or stdout is not really closed until these counts goes 0
+	int stdin_count;
+	int stdout_count;
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
