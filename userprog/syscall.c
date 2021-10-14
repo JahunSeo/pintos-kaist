@@ -345,10 +345,8 @@ int _write (int fd, const void *buffer, unsigned size) {
 }
 
 void _close (int fd) {
-	struct file *file = process_get_file(fd);
-	if (file == NULL) 
-		return;
 	if (fd >= 2) {
+		struct file *file = process_get_file(fd);
 		file_close(file);
 	}
 	process_close_file(fd);

@@ -323,13 +323,15 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 	// fdt에서 열려있는 파일 닫기
 	struct file *file;
-	for (int i = 0; i <= curr->max_fd; i++) {
-		file = curr->fdt[i];
-		if (i < 2) {
-			curr->fdt[i] = NULL; // TODO			
-		} else {
-			file_close(file);
-		}
+	for (int fd = 0; fd <= curr->max_fd; fd++) {
+		_close(fd);
+
+		// file = curr->fdt[i];
+		// if (i < 2) {
+		// 	curr->fdt[i] = NULL; // TODO			
+		// } else {
+		// 	file_close(file);
+		// }
 	}
 	// fdt에 할당된 kernel 영역의 메모리 회수하기
 	palloc_free_multiple(curr->fdt, FDT_PAGE_CNT);
