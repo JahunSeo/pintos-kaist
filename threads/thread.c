@@ -210,6 +210,17 @@ thread_create (const char *name, int priority,
 	struct thread *parent = thread_current();
 	list_push_back(&parent->children, &t->child_elem);
 
+	/* file descriptor 관련
+		- palloc을 활용해 kernel memory fool에 FDT 생성
+		- next_fd를 2로 초기화: 0은 STDIN, 1은 STDOUT
+	 */
+	// printf("[thread_create]  %d, %d, %p \n", PAL_ZERO, FDT_PAGE_CNT, t->fdt);
+	t->fdt = (struct file**) palloc_get_multiple(PAL_ZERO, FDT_PAGE_CNT);
+	t->fdt[0] = 10; // dummy value 
+	t->fdt[1] = 11; // dummy value
+	t->next_fd = 2; // 다음에 들어갈 파일의 fd값
+	t->max_fd = 1;  // 파일이 들어간 fd의 최대값
+
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
 	t->tf.rip = (uintptr_t) kernel_thread;
@@ -595,6 +606,9 @@ init_thread (struct thread *t, const char *name, int priority) {
 	sema_init(&t->fork_sema, 0);	/* parent가 down한 뒤 child(current thread)가 up */
 	sema_init(&t->wait_sema, 0);	/* parent가 down한 뒤 child(current thread)가 up */
 	sema_init(&t->free_sema, 0);	/* child(current thread)가 down한 뒤 parent가 up */
+
+	/* 실행 중인 파일 관련 */
+	t->running_file = NULL;
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should

@@ -80,7 +80,7 @@ initd (void *f_name) {
 /* Clones the current process as `name`. Returns the new process's thread id, or
  * TID_ERROR if the thread cannot be created. */
 tid_t
-process_fork (const char *name, struct intr_frame *if_ UNUSED) {
+process_fork (const char *name, struct intr_frame *if_) {
 	/* Clone current thread to new thread.*/
 	// parent(현재 thread)의 상태를 parent_if에 보관 (나중에 child가 사용할 것)
 	struct thread *curr = thread_current();
@@ -134,10 +134,18 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 
 	/* 2. Resolve VA from the parent's page map level 4. */
 	parent_page = pml4_get_page (parent->pml4, va);
+	if (parent_page == NULL) {
+		printf("[duplicate_pte] parent_page error\n");
+		return false;
+	}
 
 	/* 3. TODO: Allocate new PAL_USER page for the child and set result to
 	 *    TODO: NEWPAGE. */
 	newpage = palloc_get_page (PAL_USER);
+	if (newpage == NULL) {
+		printf("[duplicate_pte] newpage error\n");
+		return false;
+	}
 
 	/* 4. TODO: Duplicate parent's page to the new page and
 	 *    TODO: check whether parent's page is writable or not (set WRITABLE
@@ -149,6 +157,8 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	 *    permission. */
 	if (!pml4_set_page (current->pml4, va, newpage, writable)) {
 		/* 6. TODO: if fail to insert page, do error handling. */
+		printf("[duplicate_pte] pml4_set_page error\n");
+		palloc_free_page(newpage);
 		return false;
 	}
 	return true;
@@ -166,7 +176,7 @@ __do_fork (void *aux) {
 	struct thread *current = thread_current ();
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
 	struct intr_frame *parent_if;
-	parent_if = &parent->parent_if;	//
+	parent_if = &parent->parent_if;	
 	bool succ = true;
 
 	// printf("[__do_fork] checkpoint 1\n");
@@ -194,7 +204,33 @@ __do_fork (void *aux) {
 	 * TODO: Hint) To duplicate the file object, use `file_duplicate`
 	 * TODO:       in include/filesys/file.h. Note that parent should not return
 	 * TODO:       from the fork() until this function successfully duplicates
-	 * TODO:       the resources of parent.*/
+	 * TODO:       the resources of parent.
+	 * 부모의 file descriptor table을 복사
+	 * 이 때, thread_create에서 fdt와 next_fd는 초기화가 된 상태
+	 * 그러므로 parent의 fdt와 next_fd를 가져와 붙여주어야 함
+	 * */
+
+	// multi-oom 통과를 위해 아래 라인이 추가되어야 함. 왜?
+	if (parent->next_fd == FDT_ENTRY_MAX) {
+		// printf("[__do_fork] max fail.. why??\n");
+		goto error;
+	}
+
+	// next_fd, max_fd 가져오기
+	current->next_fd = parent->next_fd;	
+	current->max_fd = parent->max_fd;	
+
+	// fdt 가져오기: parent fdt의 file들을 current fdt에서 duplicate (아직 dup 를 고려하지 않음)
+	struct file *orig_file;
+	for (int i = 0; i <= parent->max_fd; i++) {
+		orig_file = parent->fdt[i];
+		if (i < 2) {
+			current->fdt[i] = orig_file;			
+		} else if (orig_file != NULL) {
+			current->fdt[i] = (struct file*) file_duplicate(orig_file);
+		}
+	}
+
 
 	process_init ();
 
@@ -293,6 +329,22 @@ process_exit (void) {
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
+	// fdt에서 열려있는 파일 닫기
+	struct file *file;
+	for (int fd = 0; fd <= curr->max_fd; fd++) {
+		_close(fd);
+
+		// file = curr->fdt[i];
+		// if (i < 2) {
+		// 	curr->fdt[i] = NULL; // TODO			
+		// } else {
+		// 	file_close(file);
+		// }
+	}
+	// fdt에 할당된 kernel 영역의 메모리 회수하기
+	palloc_free_multiple(curr->fdt, FDT_PAGE_CNT);
+	// 실행 중이던 파일이 있다면 종료하기
+	file_close(curr->running_file);
 
 	process_cleanup ();
 
@@ -300,9 +352,9 @@ process_exit (void) {
 		- parent가 wait을 걸기 전에 child가 먼저 종료되었을 수도 있음
 	*/ 
 	sema_up(&curr->wait_sema);
-	// parent가 현재 thread를 회수할 때까지 thread_exit하지 않고 기다림 (exit_status를 전달하기 위함)
+	/* parent가 현재 thread를 회수할 때까지 thread_exit하지 않고 기다림 (exit_status를 전달하기 위함) */
 	sema_down(&curr->free_sema);
-	// parent가 회수한 뒤 thread_exit의 남은 부분이 실행됨
+	/* parent가 회수한 뒤 thread_exit의 남은 부분이 실행됨 */
 }
 
 /* Free the current process's resources. */
@@ -447,6 +499,9 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 	}
 
+	t->running_file = file;
+	file_deny_write(file);
+
 	/* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
 			|| memcmp (ehdr.e_ident, "\177ELF\2\1\1", 7)
@@ -524,10 +579,9 @@ load (const char *file_name, struct intr_frame *if_) {
 	argument_stack(argv, argc, if_);
 	// hex_dump(if_->rsp, if_->rsp, USER_STACK - if_->rsp, true); 
 	success = true;
-
 done:
 	/* We arrive here whether the load is successful or not. */
-	file_close (file);
+	// file_close (file); // process_exit() 시점에 종료되도록 변경
 	return success;
 }
 

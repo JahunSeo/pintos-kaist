@@ -9,7 +9,8 @@
 #ifdef VM
 #include "vm/vm.h"
 #endif
-
+/* added */
+#include "threads/vaddr.h"
 
 /* States in a thread's life cycle. */
 enum thread_status {
@@ -28,6 +29,13 @@ typedef int tid_t;
 #define PRI_MIN 0                       /* Lowest priority. */
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
+
+/* file descriptor related */
+// #define FDT_ENTRY_MAX 64
+// #define FDT_PAGE_CNT (FDT_ENTRY_MAX + (PGSIZE - 1)) / (PGSIZE)
+
+#define FDT_PAGE_CNT 3				
+#define FDT_ENTRY_MAX FDT_PAGE_CNT *(1 << 9)    
 
 /* A kernel thread or user process.
  *
@@ -120,6 +128,12 @@ struct thread {
 	struct semaphore fork_sema;			/* 현재 thread가 fork 완료되었는지 여부 // Q. 왜 lock이 아닐까? */
 	struct semaphore wait_sema;			/* 현재 thread가 parent에 의해 wait되는지 여부 */
 	struct semaphore free_sema;			/* 현재 thread가 parent에 의해 회수되었는지 여부 (회수 대상은 exit_status) */
+	/* file descriptor 관련 멤버 */
+	struct file** fdt;					/* "'파일의 주소값'들을 담은 배열"에 대한 주소값 */
+	int next_fd;						/* 새로운 파일을 open 시 그 파일에 부여할 fd 값 */
+	int max_fd;							/* 파일이 들어가 있는 fd의 최대값 (fork, exit에서 활용) */
+	/* executable 관련 멤버 */
+	struct file* running_file;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
