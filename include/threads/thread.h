@@ -34,7 +34,7 @@ typedef int tid_t;
 // #define FDT_ENTRY_MAX 64
 // #define FDT_PAGE_CNT (FDT_ENTRY_MAX + (PGSIZE - 1)) / (PGSIZE)
 
-#define FDT_PAGE_CNT 1				
+#define FDT_PAGE_CNT 3				
 #define FDT_ENTRY_MAX FDT_PAGE_CNT *(1 << 9)    
 
 /* A kernel thread or user process.
