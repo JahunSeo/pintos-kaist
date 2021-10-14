@@ -261,7 +261,11 @@ bool _remove (const char *file_name) {
 
 int _open (const char *file_name) {
 	check_address(file_name);
-	struct file* file = filesys_open(file_name);
+	struct file* file;
+	lock_acquire(&filesys_lock);
+	file = filesys_open(file_name);
+	lock_release(&filesys_lock);
+
 
 	if (file == NULL) {
 		return TID_ERROR;
@@ -269,7 +273,9 @@ int _open (const char *file_name) {
 	int fd = process_add_file(file);
 
 	if (fd == TID_ERROR) {
+		lock_acquire(&filesys_lock);
 		file_close (file);
+		lock_release(&filesys_lock);
 	}
 	return fd;
 }
@@ -347,7 +353,9 @@ int _write (int fd, const void *buffer, unsigned size) {
 void _close (int fd) {
 	if (fd >= 2) {
 		struct file *file = process_get_file(fd);
+		lock_acquire(&filesys_lock);
 		file_close(file);
+		lock_release(&filesys_lock);
 	}
 	process_close_file(fd);
 }
@@ -365,5 +373,9 @@ unsigned _tell (int fd) {
 	if (fd < 2) return;
 	struct file *file = process_get_file(fd);
 	if (file == NULL) return;
-	return file_tell(file);
+	unsigned position;
+	lock_acquire(&filesys_lock);
+	position = file_tell(file);
+	lock_release(&filesys_lock);
+	return position;
 }
