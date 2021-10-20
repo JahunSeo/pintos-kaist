@@ -174,6 +174,11 @@ vm_do_claim_page (struct page *page) {
 /* Initialize new supplemental page table */
 void
 supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
+	// 실행시점: 새로운 프로세스가 생성될 때 & forK될 때
+	// 매개변수: 새로 생성되거나 fork 되는 thread의 spt 멤버의 주소값
+	// 역할: 해당 thread에 spt를 초기화
+	//  - 이 때, spt의 자료 구조는 정의하기 나름이며, 여기서는 hash table로 결정
+	
 }
 
 /* Copy supplemental page table from src to dst */
