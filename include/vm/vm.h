@@ -48,6 +48,8 @@ struct page {
 	struct frame *frame;   /* Back reference for frame */
 
 	/* Your implementation */
+	/* supplemental page table 관련 */
+	struct hash_elem h_elem;
 
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
