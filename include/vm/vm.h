@@ -30,6 +30,8 @@ enum vm_type {
 #ifdef EFILESYS
 #include "filesys/page_cache.h"
 #endif
+// ADD
+#include <hash.h>
 
 struct page_operations;
 struct thread;
@@ -109,5 +111,11 @@ bool vm_alloc_page_with_initializer (enum vm_type type, void *upage,
 void vm_dealloc_page (struct page *page);
 bool vm_claim_page (void *va);
 enum vm_type page_get_type (struct page *page);
+
+/* spt hash table 관련
+  - hash.h의 hash_hash_func, hash_less_func 참고
+*/
+uint64_t page_hash (const struct hash_elem *e, void *aux);
+bool page_less (const struct hash_elem *a, const struct hash_elem *b, void *aux);
 
 #endif  /* VM_VM_H */

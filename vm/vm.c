@@ -4,6 +4,9 @@
 #include "vm/vm.h"
 #include "vm/inspect.h"
 
+// ADD
+#include <hash.h>
+
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
 void
@@ -171,14 +174,19 @@ vm_do_claim_page (struct page *page) {
 	return swap_in (page, frame->kva);
 }
 
-/* Initialize new supplemental page table */
+/* Initialize new supplemental page table 
+  - 실행시점: 새로운 프로세스가 생성될 때 & forK될 때
+  - 매개변수: 새로 생성되거나 fork 되는 thread의 spt 멤버의 주소값
+  - 역할: 해당 thread에 spt를 초기화
+	- 이 때, spt의 자료 구조는 정의하기 나름이며, 여기서는 hash table로 결정
+*/
 void
-supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
-	// 실행시점: 새로운 프로세스가 생성될 때 & forK될 때
-	// 매개변수: 새로 생성되거나 fork 되는 thread의 spt 멤버의 주소값
-	// 역할: 해당 thread에 spt를 초기화
-	//  - 이 때, spt의 자료 구조는 정의하기 나름이며, 여기서는 hash table로 결정
-	
+supplemental_page_table_init (struct supplemental_page_table *spt) {
+	// hash_init으로 초기화
+	//   - hash_init은 malloc을 통해 본인의 bucket 멤버에 메모리를 할당함
+	if (!hash_init(&spt->page_table, page_hash, page_less, NULL)) {
+		// TODO: malloc을 통한 메모리 할당에 실패했을 경우 처리 필요
+	}
 }
 
 /* Copy supplemental page table from src to dst */
@@ -192,4 +200,12 @@ void
 supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+}
+
+uint64_t page_hash (const struct hash_elem *e, void *aux) {
+
+}
+
+bool page_less (const struct hash_elem *a, const struct hash_elem *b, void *aux) {
+	
 }
