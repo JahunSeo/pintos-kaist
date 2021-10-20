@@ -82,14 +82,22 @@ spt_find_page (struct supplemental_page_table *spt, void *va) {
 	return hash_entry(e, struct page, h_elem);
 }
 
-/* Insert PAGE into spt with validation. */
+/* Insert PAGE into spt with validation.
+    - spt에 page를 추가
+	- 추가하기 전에 spt에 동일한 va(virtual address)가 이미 존재하는지 체크해주어야 함
+ */
 bool
-spt_insert_page (struct supplemental_page_table *spt UNUSED,
-		struct page *page UNUSED) {
-	int succ = false;
+spt_insert_page (struct supplemental_page_table *spt, struct page *page) {
 	/* TODO: Fill this function. */
-
-	return succ;
+	// hash_insert 함수에서 동일한 va를 가진 page가 있었는지에 따라 리턴값이 다름
+	// - 기존에 있었다면 해당 page, 없었다면 NULL을 리턴함
+	struct hash_elem *e;
+	e = hash_insert(&spt->page_table, page);
+	// 새로운 page 추가에 실패한 경우 (기존에 동일한 주소값을 가진 page가 존재한 경우)
+	if (e != NULL)
+		return false;
+	// 새로운 page 추가에 성공한 경우
+	return true;
 }
 
 void
