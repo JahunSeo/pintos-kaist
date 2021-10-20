@@ -85,6 +85,7 @@ struct page_operations {
  * We don't want to force you to obey any specific design for this struct.
  * All designs up to you for this. */
 struct supplemental_page_table {
+	struct hash page_table; // spt의 자료 구조를 hash table로 결정 
 };
 
 #include "threads/thread.h"
