@@ -202,6 +202,7 @@ supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 	 * TODO: writeback all the modified contents to the storage. */
 }
 
+/* Returns a hash of element's data, as a value anywhere in the range of unsigned int */ 
 uint64_t page_hash (const struct hash_elem *e, void *aux) {
 	// 매개변수 hash_elem *e는 page 구조체의 hash_elem이며, page들을 연결하는 연결고리 역할을 함
 	struct page *p = hash_entry(e, struct page, h_elem);
@@ -210,6 +211,12 @@ uint64_t page_hash (const struct hash_elem *e, void *aux) {
 	return hash_bytes(&p->va, sizeof p->va);
 }
 
+/*  Compares the keys stored in elements a and b. 
+	Returns true if a is less than b, false if a is greater than or equal to b. 
+	If two elements compare equal, then they must hash to equal values. */
 bool page_less (const struct hash_elem *a, const struct hash_elem *b, void *aux) {
-	
+	struct page *pa = hash_entry(a, struct page, h_elem);
+	struct page *pb = hash_entry(b, struct page, h_elem);
+	// page의 주소값의 크기(선후관계)를 비교
+	return pa->va < pb->va; 
 }
