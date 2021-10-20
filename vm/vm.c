@@ -63,13 +63,23 @@ err:
 	return false;
 }
 
-/* Find VA from spt and return page. On error, return NULL. */
+/* Find VA from spt and return page. On error, return NULL.
+	- spt에서 va를 가진 page의 주소값을 리턴하기
+ */
 struct page *
-spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
-	struct page *page = NULL;
+spt_find_page (struct supplemental_page_table *spt, void *va) {
 	/* TODO: Fill this function. */
-
-	return page;
+	// spt에서 va를 가진 page를 찾기 위해, 동일한 va를 가진 dummy page를 생성해서 hash_find의 인자로 넘겨줌
+	// - ((WARNING)) dummy page를 malloc 등으로 생성해야 할까? 일단은 아닐 것 같음!
+	struct page page; 
+	page.va = pg_round_down(va); // page boundary에 일치하도록 조정
+	struct hash_elem *e;
+	e = hash_find(&spt->page_table, &page.h_elem);
+	// va가 일치하는 page를 찾지 못한 경우
+	if (e == NULL)
+		return NULL;
+	// va가 일치하는 page를 찾은 경우
+	return hash_entry(e, struct page, h_elem);
 }
 
 /* Insert PAGE into spt with validation. */
