@@ -203,7 +203,11 @@ supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 }
 
 uint64_t page_hash (const struct hash_elem *e, void *aux) {
-
+	// 매개변수 hash_elem *e는 page 구조체의 hash_elem이며, page들을 연결하는 연결고리 역할을 함
+	struct page *p = hash_entry(e, struct page, h_elem);
+	// hash_bytes: Returns a hash of the size bytes starting at buf
+	// -  va는 (void *), 그냥 주소값? 주소값이 unique 하긴 하지.. 그러면 주소값을 hash 하는 건가?
+	return hash_bytes(&p->va, sizeof p->va);
 }
 
 bool page_less (const struct hash_elem *a, const struct hash_elem *b, void *aux) {
