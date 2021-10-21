@@ -255,7 +255,7 @@ vm_do_claim_page (struct page *page) {
 	//  - 이 때, page table에 이미 동일한 가상 주소가 추가되어 있는지 사전 체크
 	//  - 2주차 코드 중 install_page 참고
 	struct thread *t = thread_current();
-	if (pml4_get_page (t->pml4, page) == NULL
+	if (pml4_get_page (t->pml4, page->va) == NULL
 		&& pml4_set_page (t->pml4, page->va, frame->kva, page->writable)) {
 		return swap_in (page, frame->kva);
 	}
