@@ -50,11 +50,16 @@ static struct frame *vm_evict_frame (void);
 
 /* Create the pending page object with initializer. If you want to create a
  * page, do not create it directly and make it through this function or
- * `vm_alloc_page`. */
+ * `vm_alloc_page`.
+ * - process.c의 load에서 load_segment를 콜하고, 
+ * - load_segment에서 vm_alloc_page_with_initializer을 콜함
+ * - 이 initializer 함수는 필요한 시점에 lazy load할 수 있도록
+ * - init으로 전달된 lazy_load_segment를 활용해 처리해 둠
+ *  */
 bool
 vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		vm_initializer *init, void *aux) {
-
+	
 	ASSERT (VM_TYPE(type) != VM_UNINIT)
 
 	struct supplemental_page_table *spt = &thread_current ()->spt;
@@ -64,8 +69,18 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
-
+		// malloc으로 page 생성: 나중에 vm_dealloc_page()를 통해 free하게 됨
+		struct page *newpage = (struct page *) malloc(sizeof(struct page));
+		// uninit_new()로 page 초기화: VM_UNINIT 상태로 만듦
+		if (VM_TYPE(type) == VM_ANON) {
+			uninit_new(newpage, upage, init, type, aux, anon_initializer);
+		} else if (VM_TYPE(type) == VM_FILE) {
+			uninit_new(newpage, upage, init, type, aux, file_backed_initializer);
+		} 
+		newpage->writable = writable;
 		/* TODO: Insert the page into the spt. */
+		spt_insert_page(spt, newpage);
+		return true;
 	}
 err:
 	return false;
@@ -178,7 +193,14 @@ static bool
 vm_handle_wp (struct page *page UNUSED) {
 }
 
-/* Return true on success */
+/* On page fault, the page fault handler (page_fault in userprog/exception.c) 
+  transfers control to vm_try_handle_fault, which first checks if it is a valid page fault. 
+  By valid, we mean the fault that accesses invalid.  If it is a bogus fault, 
+  you load some contents into the page and return control to the user program.
+  There are three cases of bogus page fault: 
+  lazy-loaded, swaped-out page, and write-protected page.
+  - Return true on success 
+*/
 bool
 vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
