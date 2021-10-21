@@ -209,6 +209,9 @@ vm_claim_page (void *va UNUSED) {
 /* Claim the PAGE and set up the mmu. */
 static bool
 vm_do_claim_page (struct page *page) {
+	// page를 넣을 frame 한 개를 선택
+	//  - 여기서 page는 supplemental page table에 있지만, 
+	//  - 아직 page table(pml4)에는 등록되지 않은, 즉 물리 메모리 (혹은 disk) 상에는 올라가지 않은 상태
 	struct frame *frame = vm_get_frame ();
 
 	/* Set links */
@@ -216,8 +219,17 @@ vm_do_claim_page (struct page *page) {
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
-
-	return swap_in (page, frame->kva);
+	// 현재 thread의 page table(pml4)에 pte 추가하기
+	//  - pte를 만드는데 필요한 정보: page의 가상 주소(page->va), 물리메모리에 실제로 놓인 위치(frame->kva) 등 
+	//  - 이 때, page table에 이미 동일한 가상 주소가 추가되어 있는지 사전 체크
+	//  - 2주차 코드 중 install_page 참고
+	struct thread *t = thread_current();
+	if (pml4_get_page (t->pml4, page) == NULL
+		&& pml4_set_page (t->pml4, page->va, frame->kva, page->writable)) {
+		return swap_in (page, frame->kva);
+	}
+	// page table에 추가 실패 시 처리
+	return false;	
 }
 
 /* Initialize new supplemental page table 
