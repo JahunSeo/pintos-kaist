@@ -203,14 +203,24 @@ vm_handle_wp (struct page *page UNUSED) {
   - Return true on success 
 */
 bool
-vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
-		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
-	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
-	struct page *page = NULL;
+vm_try_handle_fault (struct intr_frame *f, void *addr,
+		bool user, bool write UNUSED, bool not_present UNUSED) {
+	printf("[vm_try_handle_fault] hello! %p, %d, %d, %d\n", addr, user, write, not_present);
+	struct supplemental_page_table *spt = &thread_current ()->spt;
+	struct page *page;
 	/* TODO: Validate the fault */
+	// kernel 영역에서 발생한 page fault인 경우
+	if (!user)
+		return false;
 	/* TODO: Your code goes here */
-	printf("[vm_try_handle_fault] hello!\n");
-
+	page = spt_find_page(spt, addr);
+	if (page == NULL) {
+		printf("[vm_try_handle_fault] no page! %p, %p\n", page, addr);
+		return false;
+	}
+	printf("[vm_try_handle_fault] found page! %p, %p, %d, %d\n", 
+		page, addr, page->operations->type, page->uninit.type);
+	
 	return vm_do_claim_page (page);
 }
 
