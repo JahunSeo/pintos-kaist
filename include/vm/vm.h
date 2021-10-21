@@ -67,6 +67,8 @@ struct page {
 struct frame {
 	void *kva;
 	struct page *page;
+	/* frame table 관련: data structure를 list 로 결정 */
+	struct list_elem elem;
 };
 
 /* The function table for page operations.

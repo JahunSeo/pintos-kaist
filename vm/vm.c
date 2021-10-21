@@ -6,6 +6,10 @@
 
 // ADD
 #include <hash.h>
+#include <list.h>
+
+/* frame_table */
+static struct list frame_table;
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -19,6 +23,9 @@ vm_init (void) {
 	register_inspect_intr ();
 	/* DO NOT MODIFY UPPER LINES. */
 	/* TODO: Your code goes here. */
+	// frame_table 초기화
+	// - 정적 변수로 정의된 상태 (만약 malloc으로 할당한다면 여기서 처리)
+	list_init(&frame_table); 
 }
 
 /* Get the type of the page. This function is useful if you want to know the
@@ -137,23 +144,22 @@ vm_get_frame (void) {
 	// frame을 구성
 	struct frame *frame;
 	// page 할당에 실패한 경우 (이미 가득찬 경우)
-	//  - 기존의 frame 중 victim을 정해 swap out 처리 후 재활용 
 	if (phys_page == NULL) {
 		// 임시로 PANIC 처리
 		PANIC("TODO: vm_evict_frame");
-		// TODO
+		// TODO: 기존의 frame 중 victim을 정해 swap out 처리 후 재활용 
 		frame = vm_evict_frame();
 		frame->page = NULL;
 	} 
 	// page 할당에 성공한 경우
-	// - frame 또한 malloc을 통해 새로 구성
 	else {
+		// frame 또한 malloc을 통해 새로 구성
 		frame = (struct frame *)malloc(sizeof(struct frame));
 		frame->kva = phys_page;
 		frame->page = NULL; // 여기의 page는 phys_page에 들어갈 가상 주소 공간의 page
-
-		// TODO
-		// frame_table에 연결
+		// 새로 생성한 frame을 frame_table에 추가
+		// - 일단 push_back으로 처리하되, 추후 victim 정하는 정책에 맞게 수정
+		list_push_back(&frame_table, &frame->elem);
 	}
 	
 	ASSERT (frame != NULL);
