@@ -7,6 +7,7 @@
 // ADD
 #include <hash.h>
 #include <list.h>
+#include "threads/mmu.h"
 
 /* frame_table */
 static struct list frame_table;
@@ -199,10 +200,16 @@ vm_dealloc_page (struct page *page) {
 
 /* Claim the page that allocate on VA. */
 bool
-vm_claim_page (void *va UNUSED) {
-	struct page *page = NULL;
+vm_claim_page (void *va) {
 	/* TODO: Fill this function */
-
+	// 현재 thread의 spt에서 va에 해당하는 page를 찾음
+	struct page *page;
+ 	page = spt_find_page(&thread_current()->spt, va);
+	// page 찾기에 실패한 경우
+	if(page == NULL) {
+		return false;
+	}
+	// page를 찾은 경우, page를 page table(pml4)를 통해 물리 메모리에 배치시킴
 	return vm_do_claim_page (page);
 }
 
