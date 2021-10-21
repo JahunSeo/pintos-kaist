@@ -131,9 +131,28 @@ vm_evict_frame (void) {
  * space.*/
 static struct frame *
 vm_get_frame (void) {
-	struct frame *frame = NULL;
-	/* TODO: Fill this function. */
-
+	// 물리메모리의 유저 영역에서 page 하나를 할당 받음
+	struct page *phys_page;
+	phys_page = palloc_get_page(PAL_USER);
+	// frame을 구성
+	struct frame *frame;
+	// page 할당에 실패한 경우 (이미 가득찬 경우)
+	//  - 기존의 frame 중 victim을 정해 swap out 처리 후 재활용 
+	if (phys_page == NULL) {
+		// 임시로 PANIC 처리
+		PANIC("TODO: vm_evict_frame");
+		// TODO
+		frame = vm_evict_frame();
+		frame->page = NULL;
+	} 
+	// page 할당에 성공한 경우
+	// - frame 또한 malloc을 통해 새로 구성
+	else {
+		frame = (struct frame *)malloc(sizeof(struct frame));
+		frame->kva = phys_page;
+		frame->page = NULL; // 여기의 page는 phys_page에 들어갈 가상 주소 공간의 page
+	}
+	
 	ASSERT (frame != NULL);
 	ASSERT (frame->page == NULL);
 	return frame;
