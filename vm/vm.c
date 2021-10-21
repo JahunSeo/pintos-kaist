@@ -77,10 +77,10 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		} else if (VM_TYPE(type) == VM_FILE) {
 			uninit_new(newpage, upage, init, type, aux, file_backed_initializer);
 		} 
+		// printf("[vm_alloc_page_with_initializer] %d, %p\n", type, upage);
 		newpage->writable = writable;
 		/* TODO: Insert the page into the spt. */
-		spt_insert_page(spt, newpage);
-		return true;
+		return spt_insert_page(spt, newpage);
 	}
 err:
 	// printf("[vm_alloc_page_with_initializer] error!!\n");
@@ -118,8 +118,10 @@ spt_insert_page (struct supplemental_page_table *spt, struct page *page) {
 	struct hash_elem *e;
 	e = hash_insert(&spt->page_table, &page->h_elem);
 	// 새로운 page 추가에 실패한 경우 (기존에 동일한 주소값을 가진 page가 존재한 경우)
-	if (e != NULL)
+	if (e != NULL) {
+		printf("[spt_insert_page] fail! %p\n", page);
 		return false;
+	}
 	// 새로운 page 추가에 성공한 경우
 	return true;
 }
@@ -205,7 +207,7 @@ vm_handle_wp (struct page *page UNUSED) {
 bool
 vm_try_handle_fault (struct intr_frame *f, void *addr,
 		bool user, bool write UNUSED, bool not_present UNUSED) {
-	printf("[vm_try_handle_fault] hello! %p, %d, %d, %d\n", addr, user, write, not_present);
+	// printf("[vm_try_handle_fault] hello! %p, %d, %d, %d\n", addr, user, write, not_present);
 	struct supplemental_page_table *spt = &thread_current ()->spt;
 	struct page *page;
 	/* TODO: Validate the fault */
@@ -215,11 +217,11 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 	/* TODO: Your code goes here */
 	page = spt_find_page(spt, addr);
 	if (page == NULL) {
-		printf("[vm_try_handle_fault] no page! %p, %p\n", page, addr);
+		// printf("[vm_try_handle_fault] no page! %p, %p\n", page, addr);
 		return false;
 	}
-	printf("[vm_try_handle_fault] found page! %p, %p, %d, %d\n", 
-		page, addr, page->operations->type, page->uninit.type);
+	// printf("[vm_try_handle_fault] found page! %p, %p, %d, %d\n", 
+	// 	page->va, addr, page->operations->type, page->uninit.type);
 	
 	return vm_do_claim_page (page);
 }
