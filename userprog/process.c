@@ -768,6 +768,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a PAGE of stack at the USER_STACK. Return true on success. */
 static bool
 setup_stack (struct intr_frame *if_) {
+	printf("[setup_stack]\n");
 	bool success = false;
 	void *stack_bottom = (void *) (((uint8_t *) USER_STACK) - PGSIZE);
 
@@ -775,7 +776,20 @@ setup_stack (struct intr_frame *if_) {
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
-
+	// stack_bottom 위치에 page 할당
+	// - vm_type에 anonymous라는 점과 stack이라는 마커까지 추가하여 전달
+	// - writable을 1로 설정
+	if (vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, 1)) {
+		// 즉시 물리메모리에 배치
+		success = vm_claim_page(stack_bottom);
+		if (success) {
+			if_->rsp = USER_STACK;
+		} else {
+			// TODO: 다시 page를 찾아 dealloc 해주어야 함
+			PANIC("setup_stack fail");
+			// vm_dealloc_page(page);	
+		}
+	}
 	return success;
 }
 
