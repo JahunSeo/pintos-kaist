@@ -123,4 +123,12 @@ enum vm_type page_get_type (struct page *page);
 uint64_t page_hash (const struct hash_elem *e, void *aux);
 bool page_less (const struct hash_elem *a, const struct hash_elem *b, void *aux);
 
+/* lazy load 관련 */
+struct load_info {
+	struct file *file;
+	off_t ofs;
+	size_t page_read_bytes;
+	size_t page_zero_bytes;
+};
+
 #endif  /* VM_VM_H */
