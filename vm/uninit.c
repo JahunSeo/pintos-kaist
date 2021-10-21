@@ -34,24 +34,31 @@ uninit_new (struct page *page, void *va, vm_initializer *init,
 		.va = va,
 		.frame = NULL, /* no frame for now */
 		.uninit = (struct uninit_page) {
-			.init = init,
-			.type = type,
+			.init = init, // lazy_load_segment 가 들어옴
+			.type = type, // lazy load 시 변경될 실제 type
 			.aux = aux,
-			.page_initializer = initializer,
+			.page_initializer = initializer, // lazy load 시 page를 type에 맞게 초기화해주는 함수
 		}
 	};
 }
 
-/* Initalize the page on first fault */
+/* Initalize the page on first fault 
+  - vm_do_claim_page()을 통해 swap_in 될 때, page가 uninit 상태였다면 실행되는 함수
+  - 인자로 전달된 page를 실제 type으로 다시 초기화하여 kva가 가리키는 물리메모리에 올려놓는 역할 수행
+  - 이 함수가 실행될 때 page는 이미 thread의 page table(pml4)에 올라간 상태임
+*/
 static bool
 uninit_initialize (struct page *page, void *kva) {
+
 	struct uninit_page *uninit = &page->uninit;
 
 	/* Fetch first, page_initialize may overwrite the values */
-	vm_initializer *init = uninit->init;
+	vm_initializer *init = uninit->init; // lazy_load_segment 가 들어옴
 	void *aux = uninit->aux;
 
 	/* TODO: You may need to fix this function. */
+	// 일단 page_initializer로 실제 type에 맞게 page를 다시 초기화한 뒤
+	// init으로, 즉 lazy_load_segment로 해당 page를 kva가 가리키는 물리 메모리에 올려 놓음
 	return uninit->page_initializer (page, uninit->type, kva) &&
 		(init ? init (page, aux) : true);
 }

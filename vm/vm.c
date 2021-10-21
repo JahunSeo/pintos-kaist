@@ -83,6 +83,7 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		return true;
 	}
 err:
+	// printf("[vm_alloc_page_with_initializer] error!!\n");
 	return false;
 }
 
