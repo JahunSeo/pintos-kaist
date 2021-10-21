@@ -268,7 +268,10 @@ process_exec (void *f_name) {
 
 	/* We first kill the current context */
 	process_cleanup ();
-
+	#ifdef VM
+	// 기존 spt는 supplemental_page_table_kill()로 지워졌기 때문에 spt도 새로 init 해주어야 함
+	supplemental_page_table_init(&thread_current()->spt);
+	#endif
 	// printf("[process_exec] before load: %s\n", file_name);
 	/* And then load the binary */
 	success = load (file_name, &_if);
