@@ -92,7 +92,7 @@ spt_insert_page (struct supplemental_page_table *spt, struct page *page) {
 	// hash_insert 함수에서 동일한 va를 가진 page가 있었는지에 따라 리턴값이 다름
 	// - 기존에 있었다면 해당 page, 없었다면 NULL을 리턴함
 	struct hash_elem *e;
-	e = hash_insert(&spt->page_table, page);
+	e = hash_insert(&spt->page_table, &page->h_elem);
 	// 새로운 page 추가에 실패한 경우 (기존에 동일한 주소값을 가진 page가 존재한 경우)
 	if (e != NULL)
 		return false;
@@ -151,6 +151,9 @@ vm_get_frame (void) {
 		frame = (struct frame *)malloc(sizeof(struct frame));
 		frame->kva = phys_page;
 		frame->page = NULL; // 여기의 page는 phys_page에 들어갈 가상 주소 공간의 page
+
+		// TODO
+		// frame_table에 연결
 	}
 	
 	ASSERT (frame != NULL);
