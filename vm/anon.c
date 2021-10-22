@@ -60,4 +60,7 @@ anon_swap_out (struct page *page) {
 static void
 anon_destroy (struct page *page) {
 	struct anon_page *anon_page = &page->anon;
+	// page가 담겨 있던 frame에 해당 page가 삭제되었다는 표시를 해둠
+	if (page->frame)
+		page->frame->page = NULL;
 }
