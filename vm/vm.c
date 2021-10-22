@@ -292,8 +292,35 @@ supplemental_page_table_init (struct supplemental_page_table *spt) {
 
 /* Copy supplemental page table from src to dst */
 bool
-supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
-		struct supplemental_page_table *src UNUSED) {
+supplemental_page_table_copy (struct supplemental_page_table *dst,
+		struct supplemental_page_table *src) {
+	// dst는 process를 fork하며 새로 생성 및 초기화된 spt (비어 있음)
+	printf("[spt_copy] start %p, %p\n", dst, src);
+	// hash iterator 초기화
+	struct hash_iterator i;
+	hash_first(&i, &src->page_table);
+	// hash table에 있는 각 page들을 돌며 복사
+	while (hash_next(&i)) {
+		struct page *p_page = hash_entry(hash_cur(&i), struct page, h_elem);
+		enum vm_type p_type = p_page->operations->type;
+		printf("[spt_copy] parent_page: %p, %d\n", p_page->va, p_type);
+		if (VM_TYPE(p_type) == VM_UNINIT) {
+			printf("[spt_copy] VM_UNINIT! %d\n", p_type);
+		} else if (VM_TYPE(p_type) == VM_ANON) {
+			printf("[spt_copy] VM_ANON! %d\n", p_type);
+			// 스택인 경우
+			if (p_type & VM_MARKER_0) {
+				printf("[spt_copy] stack! %d\n", p_type);
+			}
+
+		} else if (VM_TYPE(p_type) == VM_FILE) {
+			printf("[spt_copy] VM_FILE! %d\n", p_type);
+
+		}
+	}
+
+
+
 }
 
 /* Free the resource hold by the supplemental page table */
