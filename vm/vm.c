@@ -306,7 +306,21 @@ supplemental_page_table_copy (struct supplemental_page_table *dst,
 		// printf("[spt_copy] parent_page: %p, %d\n", p_page->va, p_type);
 		// VM_UNINIT인 경우: 아직 spt에만 존재하고 물리메모리에 올라가지 않은 페이지들
 		if (VM_TYPE(p_type) == VM_UNINIT) {
-			printf("[spt_copy] VM_UNINIT! %d\n", p_type);
+			// printf("[spt_copy] VM_UNINIT! %d\n", p_type);
+			// parent_page 에서 보관 중인 정보들을 가져옴
+			vm_initializer *p_init = p_page->uninit.init;
+			struct load_info *p_aux = p_page->uninit.aux;
+			// child_page에 전달할 새로운 aux를 구성
+			struct load_info *c_aux = malloc(sizeof(struct load_info));
+			c_aux->file = p_aux->file;
+			c_aux->ofs = p_aux->ofs;
+			c_aux->page_read_bytes = p_aux->page_read_bytes;
+			c_aux->page_zero_bytes = p_aux->page_zero_bytes;
+			// child process에서 새로운 page를 할당
+			if (!vm_alloc_page_with_initializer (p_type, p_page->va,
+						p_page->writable, p_init, c_aux))
+				return false;
+
 		} 
 		// 나머지 경우: page table(pml4)와 물리메모리에 올라간 상태의 페이지들
 		else if (VM_TYPE(p_type) == VM_ANON) {
@@ -320,6 +334,8 @@ supplemental_page_table_copy (struct supplemental_page_table *dst,
 			if (!vm_do_claim_page(c_page))
 				return false;
 			// parent page를 child page에 복사함
+			// - 만약 parent page가 disk로 swap 되어 있었다면 어떻게 하지? 
+			// - memcpy 전에 parent page도 물리메모리에 올려놓도록 조치를 해야할까?
 			memcpy(c_page->frame->kva, p_page->frame->kva, PGSIZE);
 		} else if (VM_TYPE(p_type) == VM_FILE) {
 			printf("[spt_copy] VM_FILE! %d\n", p_type);

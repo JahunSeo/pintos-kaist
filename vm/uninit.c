@@ -36,7 +36,7 @@ uninit_new (struct page *page, void *va, vm_initializer *init,
 		.uninit = (struct uninit_page) {
 			.init = init, // lazy_load_segment 가 들어옴
 			.type = type, // lazy load 시 변경될 실제 type
-			.aux = aux,
+			.aux = aux,   // lazy_load_segment 실행 시 인자로 전달되는 값
 			.page_initializer = initializer, // lazy load 시 page를 type에 맞게 초기화해주는 함수
 		}
 	};
