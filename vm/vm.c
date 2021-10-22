@@ -346,15 +346,28 @@ supplemental_page_table_copy (struct supplemental_page_table *dst,
 	return true;
 }
 
+/* hash_destroy에 전달할 두 번째 인자 함수
+    - hash 내 각 hash_elem들에게 특정한 액션을 취할 수 있음
+	- hash로 구성된 page table 내 page들을 free하는데 사용 (destroy)
+	- spt_kill에서만 사용되므로 static으로 정의 
+ */
+static void
+page_destroy (struct hash_elem *e, void *aux UNUSED) {
+	struct page *page = hash_entry(e, struct page, h_elem);
+	destroy(page);
+}
+
 /* Free the resource hold by the supplemental page table */
 void
-supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
+supplemental_page_table_kill (struct supplemental_page_table *spt) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+	
 }
 
 /* Returns a hash of element's data, as a value anywhere in the range of unsigned int */ 
-uint64_t page_hash (const struct hash_elem *e, void *aux UNUSED) {
+uint64_t 
+page_hash (const struct hash_elem *e, void *aux UNUSED) {
 	// 매개변수 hash_elem *e는 page 구조체의 hash_elem이며, page들을 연결하는 연결고리 역할을 함
 	struct page *p = hash_entry(e, struct page, h_elem);
 	// hash_bytes: Returns a hash of the size bytes starting at buf
@@ -365,7 +378,8 @@ uint64_t page_hash (const struct hash_elem *e, void *aux UNUSED) {
 /*  Compares the keys stored in elements a and b. 
 	Returns true if a is less than b, false if a is greater than or equal to b. 
 	If two elements compare equal, then they must hash to equal values. */
-bool page_less (const struct hash_elem *a, const struct hash_elem *b, void *aux UNUSED) {
+bool 
+page_less (const struct hash_elem *a, const struct hash_elem *b, void *aux UNUSED) {
 	struct page *pa = hash_entry(a, struct page, h_elem);
 	struct page *pb = hash_entry(b, struct page, h_elem);
 	// page의 주소값의 크기(선후관계)를 비교
