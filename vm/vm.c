@@ -295,7 +295,7 @@ bool
 supplemental_page_table_copy (struct supplemental_page_table *dst,
 		struct supplemental_page_table *src) {
 	// dst는 process를 fork하며 새로 생성 및 초기화된 spt (비어 있음)
-	printf("[spt_copy] start %p, %p\n", dst, src);
+	// printf("[spt_copy] start %p, %p\n", dst, src);
 	// hash iterator 초기화
 	struct hash_iterator i;
 	hash_first(&i, &src->page_table);
@@ -303,24 +303,31 @@ supplemental_page_table_copy (struct supplemental_page_table *dst,
 	while (hash_next(&i)) {
 		struct page *p_page = hash_entry(hash_cur(&i), struct page, h_elem);
 		enum vm_type p_type = p_page->operations->type;
-		printf("[spt_copy] parent_page: %p, %d\n", p_page->va, p_type);
+		// printf("[spt_copy] parent_page: %p, %d\n", p_page->va, p_type);
+		// VM_UNINIT인 경우: 아직 spt에만 존재하고 물리메모리에 올라가지 않은 페이지들
 		if (VM_TYPE(p_type) == VM_UNINIT) {
 			printf("[spt_copy] VM_UNINIT! %d\n", p_type);
-		} else if (VM_TYPE(p_type) == VM_ANON) {
-			printf("[spt_copy] VM_ANON! %d\n", p_type);
-			// 스택인 경우
-			if (p_type & VM_MARKER_0) {
-				printf("[spt_copy] stack! %d\n", p_type);
-			}
-
+		} 
+		// 나머지 경우: page table(pml4)와 물리메모리에 올라간 상태의 페이지들
+		else if (VM_TYPE(p_type) == VM_ANON) {
+			// printf("[spt_copy] VM_ANON! %d\n", p_type);
+			// child process를 위한 새로운 page 할당: type, va, writable 그대로 유지
+			if (!vm_alloc_page(p_type, p_page->va, p_page->writable))
+				return false;
+			// 새로 할당된 child_page의 주소값 찾기
+			struct page *c_page = spt_find_page(dst, p_page->va);
+			// 새로운 child_page를 바로 물리메모리에 배치시킴
+			if (!vm_do_claim_page(c_page))
+				return false;
+			// parent page를 child page에 복사함
+			memcpy(c_page->frame->kva, p_page->frame->kva, PGSIZE);
 		} else if (VM_TYPE(p_type) == VM_FILE) {
 			printf("[spt_copy] VM_FILE! %d\n", p_type);
-
+			// TODO: 일단 아무 것도 하지 않음
 		}
 	}
-
-
-
+	// 정상적으로 copy 되었다는 것을 알려주기 위해 true 리턴
+	return true;
 }
 
 /* Free the resource hold by the supplemental page table */
