@@ -59,7 +59,6 @@ static struct frame *vm_evict_frame (void);
 bool
 vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		vm_initializer *init, void *aux) {
-	
 	ASSERT (VM_TYPE(type) != VM_UNINIT)
 
 	struct supplemental_page_table *spt = &thread_current ()->spt;
@@ -317,7 +316,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst,
 			c_aux->page_read_bytes = p_aux->page_read_bytes;
 			c_aux->page_zero_bytes = p_aux->page_zero_bytes;
 			// child process에서 새로운 page를 할당
-			if (!vm_alloc_page_with_initializer (p_type, p_page->va,
+			if (!vm_alloc_page_with_initializer (p_page->uninit.type, p_page->va,
 						p_page->writable, p_init, c_aux))
 				return false;
 
