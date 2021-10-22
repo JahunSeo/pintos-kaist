@@ -355,6 +355,7 @@ static void
 page_destroy (struct hash_elem *e, void *aux UNUSED) {
 	struct page *page = hash_entry(e, struct page, h_elem);
 	destroy(page);
+	free(page);
 }
 
 /* Free the resource hold by the supplemental page table */
@@ -362,7 +363,7 @@ void
 supplemental_page_table_kill (struct supplemental_page_table *spt) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
-	
+	hash_destroy(&spt->page_table, page_destroy);
 }
 
 /* Returns a hash of element's data, as a value anywhere in the range of unsigned int */ 
