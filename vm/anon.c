@@ -17,6 +17,14 @@ static const struct page_operations anon_ops = {
 	.type = VM_ANON,
 };
 
+/* ANON 중 stack임을 표시해둔 operations */
+static const struct page_operations stack_ops = {
+	.swap_in = anon_swap_in,
+	.swap_out = anon_swap_out,
+	.destroy = anon_destroy,
+	.type = VM_ANON | VM_MARKER_0,
+};
+
 /* Initialize the data for anonymous pages */
 void
 vm_anon_init (void) {
@@ -27,9 +35,12 @@ vm_anon_init (void) {
 /* Initialize the file mapping */
 bool
 anon_initializer (struct page *page, enum vm_type type, void *kva) {
-	/* Set up the handler */
-	page->operations = &anon_ops;
-
+	/* Set up the handler: 스택 여부를 구분 */
+	if (type & VM_MARKER_0) {
+		page->operations = &stack_ops;
+	} else {
+		page->operations = &anon_ops;
+	}
 	struct anon_page *anon_page = &page->anon;
 }
 
@@ -49,4 +60,7 @@ anon_swap_out (struct page *page) {
 static void
 anon_destroy (struct page *page) {
 	struct anon_page *anon_page = &page->anon;
+	// page가 담겨 있던 frame에 해당 page가 삭제되었다는 표시를 해둠
+	if (page->frame)
+		page->frame->page = NULL;
 }
