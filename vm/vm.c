@@ -206,12 +206,12 @@ vm_handle_wp (struct page *page UNUSED) {
 bool
 vm_try_handle_fault (struct intr_frame *f, void *addr,
 		bool user, bool write UNUSED, bool not_present UNUSED) {
-	// printf("[vm_try_handle_fault] hello! %p, %d, %d, %d\n", addr, user, write, not_present);
+	// printf("[vm_try_handle_fault] hello! %p, %p, %d, %d, %d\n", f->rsp, addr, user, write, not_present);
 	struct supplemental_page_table *spt = &thread_current ()->spt;
 	struct page *page;
 	/* TODO: Validate the fault */
-	// kernel 영역에서 발생한 page fault인 경우
-	if (!user)
+	// user mode 일 때 kernel 영역에 접근하려 한 경우, 잘못된 접근이 맞음
+	if (user && is_kernel_vaddr(addr))
 		return false;
 	/* TODO: Your code goes here */
 	page = spt_find_page(spt, addr);

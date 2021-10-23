@@ -142,7 +142,7 @@ struct thread {
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
 	struct supplemental_page_table spt;	
-	uintptr_t user_rsp;					/* user stack pointer 를 임시로 저장 (stack growth에 활용) */
+	uintptr_t last_usr_rsp;					/* user stack pointer 를 임시로 저장 (stack growth에 활용) */
 #endif
 
 	/* Owned by thread.c. */
