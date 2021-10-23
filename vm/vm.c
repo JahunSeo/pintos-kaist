@@ -205,7 +205,7 @@ vm_handle_wp (struct page *page UNUSED) {
 */
 bool
 vm_try_handle_fault (struct intr_frame *f, void *addr,
-		bool user, bool write UNUSED, bool not_present UNUSED) {
+		bool user, bool write, bool not_present) {
 	// printf("[vm_try_handle_fault] hello! %p, %p, %d, %d, %d\n", f->rsp, addr, user, write, not_present);
 	struct supplemental_page_table *spt = &thread_current ()->spt;
 	struct page *page;
@@ -213,6 +213,25 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 	// user mode 일 때 kernel 영역에 접근하려 한 경우, 잘못된 접근이 맞음
 	if (user && is_kernel_vaddr(addr))
 		return false;
+	/* stack growth 가 필요한 상황인지 확인
+		- 이 때, addr은 현재 process의 가상주소
+		- stack growth는 한 번에 1개 page 씩 커지는 상황에 한정 (한 번에 2개 이상의 page가 늘어나야 하는 상황 X)
+		- stack size는 가이드에 따라 1MB로 제한 (0x100000)
+	 */
+	// stack_bottom는 현재 stack pointer가 놓인 page의 끝단
+	// - 그러므로 addr은 stack_bottom과 (stack_bottom - PGSIZE) 사이에 있어야 함
+	// - 또한 stack size 제한에 따라 addr이 USER_STACK - 0x100000 보다 크거나 같아야 함
+	uintptr_t stack_bottom = pg_round_down(thread_current ()->last_usr_rsp);
+	bool is_addr_within_stack = addr < stack_bottom && addr >= stack_bottom - PGSIZE
+								&& addr >= USER_STACK - 0x100000;
+	if (is_user_vaddr(addr)     // 스택이므로 접근하려는 주소는 유저 영역이어야 함
+		&& write				// 스택이 부족한 상황이므로 write을 위한 접근 
+		&& not_present			// 스택이 부족한 상황이므로 not_present (read only가 아님)
+		&& is_addr_within_stack	// 접근하려는 주소가 스택 범위 내에 속해야 함
+	) {
+		vm_stack_growth(addr);
+		return true;
+	}
 	/* TODO: Your code goes here */
 	page = spt_find_page(spt, addr);
 	if (page == NULL) {
