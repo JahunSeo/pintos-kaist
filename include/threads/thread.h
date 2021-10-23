@@ -143,6 +143,7 @@ struct thread {
 	/* Table for whole virtual memory owned by thread. */
 	struct supplemental_page_table spt;	
 	uintptr_t last_usr_rsp;				/* user stack pointer를 저장 (stack growth에 활용) */
+	uintptr_t stack_bottom;				/* 스택에 할당되어 있는 메모리 영역의 범위 (페이지 단위 할당 시의 최상단) */
 #endif
 
 	/* Owned by thread.c. */

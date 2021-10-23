@@ -775,7 +775,7 @@ static bool
 setup_stack (struct intr_frame *if_) {
 	bool success = false;
 	void *stack_bottom = (void *) (((uint8_t *) USER_STACK) - PGSIZE);
-	printf("[setup_stack] %p\n", stack_bottom);
+	// printf("[setup_stack] %p\n", stack_bottom);
 
 	/* TODO: Map the stack on stack_bottom and claim the page immediately.
 	 * TODO: If success, set the rsp accordingly.
@@ -788,7 +788,10 @@ setup_stack (struct intr_frame *if_) {
 		// 즉시 물리메모리에 배치
 		success = vm_claim_page(stack_bottom);
 		if (success) {
+			// user stack pointer 업데이트
 			if_->rsp = USER_STACK;
+			// 스택에 할당되어 있는 메모리 영역의 범위(최상단) 표시
+			thread_current()->stack_bottom = stack_bottom;
 		} else {
 			// TODO: 다시 page를 찾아 dealloc 해주어야 함
 			PANIC("setup_stack fail");

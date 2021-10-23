@@ -197,6 +197,8 @@ vm_stack_growth (void *addr) {
 	// 즉시 물리메모리에 배치
 	if (!vm_claim_page(stack_bottom))
 		goto error;
+	// 스택에 할당되어 있는 메모리 영역의 범위(최상단) 표시
+	thread_current()->stack_bottom = stack_bottom;
 	return ;
 error:
 	PANIC("vm_stack_growth fail");
@@ -232,22 +234,23 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr,
 		- 그러므로 addr은 stack_bottom과 (stack_bottom - PGSIZE) 사이에 있어야 함
 		- stack size는 가이드에 따라 1MB로 제한 (0x100000)
 	 */
-	uintptr_t stack_bottom = pg_round_down(thread_current ()->last_usr_rsp);
+	uintptr_t curr_stack_bottom = thread_current ()->stack_bottom;
+	uintptr_t new_stack_bottom = pg_round_down(thread_current ()->last_usr_rsp);
 
 	printf("[vm_try_handle_fault] stack check: %d, %d, %d, %d, %d, %d \n", 
 		is_user_vaddr(addr),
 		write, not_present, 
-		(uintptr_t) addr < stack_bottom,
-		(uintptr_t) addr >= stack_bottom - PGSIZE,
-		(uintptr_t) addr >= USER_STACK - 0x100000);
-	printf("[vm_try_handle_fault]  - %p, %p, %p, %p\n", thread_current ()->last_usr_rsp, stack_bottom, addr, stack_bottom - PGSIZE);
+		new_stack_bottom < (uintptr_t) addr,
+		new_stack_bottom == curr_stack_bottom - PGSIZE,
+		new_stack_bottom >= USER_STACK - 0x100000);
+	printf("[vm_try_handle_fault]  - %p, %p, %p, %p\n", addr, thread_current ()->last_usr_rsp, new_stack_bottom, curr_stack_bottom);
 
 	if (is_user_vaddr(addr)     // 스택이므로 접근하려는 주소는 유저 영역이어야 함
 		&& write				// 스택이 부족한 상황이므로 write을 위한 접근 
 		&& not_present			// 스택이 부족한 상황이므로 not_present (read only가 아님)
-		&& (uintptr_t) addr < stack_bottom	// 접근하려는 주소가 스택 범위 내에 속해야 함
-		&& (uintptr_t) addr >= stack_bottom - PGSIZE
-		&& (uintptr_t) addr >= USER_STACK - 0x100000
+		&& new_stack_bottom < (uintptr_t) addr // 접근하려는 주소가 스택 범위 내에 속해야 함
+		&& new_stack_bottom == curr_stack_bottom - PGSIZE
+		&& new_stack_bottom >= USER_STACK - 0x100000
 	) {
 		vm_stack_growth(addr);
 		return true;
@@ -258,8 +261,8 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr,
 		// printf("[vm_try_handle_fault] no page! %p, %p\n", page, addr);
 		return false;
 	}
-	printf("[vm_try_handle_fault] found page! %p, %p, %d, %d\n", 
-		page->va, addr, page->operations->type, page->uninit.type);
+	// printf("[vm_try_handle_fault] found page! %p, %p, %d, %d\n", 
+	// 	page->va, addr, page->operations->type, page->uninit.type);
 	
 	return vm_do_claim_page (page);
 }
