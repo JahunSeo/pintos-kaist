@@ -187,7 +187,26 @@ vm_get_frame (void) {
 
 /* Growing the stack. */
 static void
-vm_stack_growth (void *addr UNUSED) {
+vm_stack_growth (void *addr) {
+	// printf("[vm_stack_growth] %p\n", addr);
+	// stack_bottom: 현재 주소가 들어갈 page의 주소값
+	uintptr_t new_stack_bottom = pg_round_down(addr);
+	// thread의 stack_bottom이 목표 위치에 도달할 때까지 page를 추가
+	while (thread_current ()->stack_bottom != new_stack_bottom) {
+		// 한 page 씩 추가하며 stack_bottom을 업데이트
+		uintptr_t tmp_stack_bottom = thread_current ()->stack_bottom - PGSIZE;
+		// spt에 page 추가
+		if (!vm_alloc_page(VM_ANON | VM_MARKER_0, tmp_stack_bottom, 1))
+			goto error;
+		// 즉시 물리메모리에 배치
+		if (!vm_claim_page(tmp_stack_bottom))
+			goto error;
+		// 스택에 할당되어 있는 메모리 영역의 범위(최상단) 표시
+		thread_current()->stack_bottom = tmp_stack_bottom;
+	}
+	return;
+error:
+	PANIC("vm_stack_growth fail");
 }
 
 /* Handle the fault on write_protected page */
@@ -204,15 +223,40 @@ vm_handle_wp (struct page *page UNUSED) {
   - Return true on success 
 */
 bool
-vm_try_handle_fault (struct intr_frame *f, void *addr,
-		bool user, bool write UNUSED, bool not_present UNUSED) {
-	// printf("[vm_try_handle_fault] hello! %p, %d, %d, %d\n", addr, user, write, not_present);
+vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr,
+		bool user, bool write, bool not_present) {
+	// printf("[vm_try_handle_fault] hello! %p, %p, %d, %d, %d\n", f->rsp, addr, user, write, not_present);
 	struct supplemental_page_table *spt = &thread_current ()->spt;
 	struct page *page;
 	/* TODO: Validate the fault */
-	// kernel 영역에서 발생한 page fault인 경우
-	if (!user)
+	// user mode 일 때 kernel 영역에 접근하려 한 경우, 잘못된 접근이 맞음
+	if (user && is_kernel_vaddr(addr))
 		return false;
+	/* stack growth 가 필요한 상황인지 확인
+		- 이 때, addr은 현재 process의 가상주소
+		- stack size는 가이드에 따라 1MB로 제한 (0x100000)
+	 */
+	uintptr_t curr_stack_bottom = thread_current ()->stack_bottom;
+	uintptr_t new_stack_bottom = pg_round_down(thread_current ()->last_usr_rsp);
+
+	// printf("[vm_try_handle_fault] stack check: %d, %d, %d, %d, %d, %d \n", 
+	// 	is_user_vaddr(addr),
+	// 	write, not_present, 
+	// 	new_stack_bottom < (uintptr_t) addr,
+	// 	(curr_stack_bottom - new_stack_bottom) / PGSIZE,
+	// 	new_stack_bottom >= USER_STACK - 0x100000);
+	// printf("[vm_try_handle_fault]  - %p, %p, %p, %p\n", addr, thread_current ()->last_usr_rsp, new_stack_bottom, curr_stack_bottom);
+
+	if (is_user_vaddr(addr)     // 스택이므로 접근하려는 주소는 유저 영역이어야 함
+		&& write				// 스택이 부족한 상황이므로 write을 위한 접근 
+		&& not_present			// 스택이 부족한 상황이므로 not_present (read only가 아님)
+		&& new_stack_bottom < (uintptr_t) addr // 접근하려는 주소가 스택 범위 내에 속해야 함
+		// && new_stack_bottom == curr_stack_bottom - PGSIZE // 한 번에 하나의 페이지만 증가한다는 전제 제거
+		&& new_stack_bottom >= USER_STACK - 0x100000
+	) {
+		vm_stack_growth(addr);
+		return true;
+	}
 	/* TODO: Your code goes here */
 	page = spt_find_page(spt, addr);
 	if (page == NULL) {

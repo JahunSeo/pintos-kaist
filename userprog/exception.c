@@ -141,14 +141,20 @@ page_fault (struct intr_frame *f) {
 	not_present = (f->error_code & PF_P) == 0;
 	write = (f->error_code & PF_W) != 0;
 	user = (f->error_code & PF_U) != 0;
-	/* 2주차 userprog에서 test case 통과를 위해, page fault 발생 시 임시로 thread 종료 */
-	// _exit(-1);
 
 #ifdef VM
 	/* For project 3 and later. */
+	// user program에 의해 page fault가 발생했을 때 user stack pointer의 위치를 저장해 둠
+	// - stack growth 필요 여부를 판단하기 위해 사용됨
+	if (user) {
+		thread_current()->last_usr_rsp = f->rsp;
+		// printf("[page_fault] last_urp_rsp: %p\n", thread_current()->last_usr_rsp);
+	}
 	if (vm_try_handle_fault (f, fault_addr, user, write, not_present))
 		return;
 #endif
+	/* 2주차 userprog에서 test case 통과를 위해, page fault 발생 시 임시로 thread 종료 */
+	_exit(-1);
 
 	/* Count page faults. */
 	page_fault_cnt++;
