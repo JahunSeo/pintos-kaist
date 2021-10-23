@@ -57,6 +57,8 @@ syscall_handler (struct intr_frame *f) {
 	// user program에 의해 syscall이 발생했을 때 user stack pointer의 위치를 저장해 둠
 	// - stack growth 필요 여부를 판단하기 위해 사용됨
 	thread_current()->last_usr_rsp = f->rsp;
+	printf("[syscall_handler] last_urp_rsp: %p\n", thread_current()->last_usr_rsp);
+
 
 	switch(f->R.rax) {
 		case SYS_HALT:                   /* Halt the operating system. */
