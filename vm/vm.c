@@ -187,7 +187,19 @@ vm_get_frame (void) {
 
 /* Growing the stack. */
 static void
-vm_stack_growth (void *addr UNUSED) {
+vm_stack_growth (void *addr) {
+	printf("[vm_stack_growth] %p\n", addr);
+	// stack_bottom: 현재 주소가 들어갈 page의 주소값
+	void *stack_bottom = pg_round_down(addr);
+	// spt에 page 추가
+	if (!vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, 1))
+		goto error;
+	// 즉시 물리메모리에 배치
+	if (!vm_claim_page(stack_bottom))
+		goto error;
+	return ;
+error:
+	PANIC("vm_stack_growth fail");
 }
 
 /* Handle the fault on write_protected page */
@@ -204,7 +216,7 @@ vm_handle_wp (struct page *page UNUSED) {
   - Return true on success 
 */
 bool
-vm_try_handle_fault (struct intr_frame *f, void *addr,
+vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr,
 		bool user, bool write, bool not_present) {
 	// printf("[vm_try_handle_fault] hello! %p, %p, %d, %d, %d\n", f->rsp, addr, user, write, not_present);
 	struct supplemental_page_table *spt = &thread_current ()->spt;
@@ -216,17 +228,26 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 	/* stack growth 가 필요한 상황인지 확인
 		- 이 때, addr은 현재 process의 가상주소
 		- stack growth는 한 번에 1개 page 씩 커지는 상황에 한정 (한 번에 2개 이상의 page가 늘어나야 하는 상황 X)
-		- stack size는 가이드에 따라 1MB로 제한 (0x100000)
 		- stack_bottom는 현재 stack pointer가 놓인 page의 끝단
 		- 그러므로 addr은 stack_bottom과 (stack_bottom - PGSIZE) 사이에 있어야 함
+		- stack size는 가이드에 따라 1MB로 제한 (0x100000)
 	 */
 	uintptr_t stack_bottom = pg_round_down(thread_current ()->last_usr_rsp);
+
+	printf("[vm_try_handle_fault] stack check: %d, %d, %d, %d, %d, %d \n", 
+		is_user_vaddr(addr),
+		write, not_present, 
+		(uintptr_t) addr < stack_bottom,
+		(uintptr_t) addr >= stack_bottom - PGSIZE,
+		(uintptr_t) addr >= USER_STACK - 0x100000);
+	printf("[vm_try_handle_fault]  - %p, %p, %p, %p\n", thread_current ()->last_usr_rsp, stack_bottom, addr, stack_bottom - PGSIZE);
+
 	if (is_user_vaddr(addr)     // 스택이므로 접근하려는 주소는 유저 영역이어야 함
 		&& write				// 스택이 부족한 상황이므로 write을 위한 접근 
 		&& not_present			// 스택이 부족한 상황이므로 not_present (read only가 아님)
-		&& addr < stack_bottom	// 접근하려는 주소가 스택 범위 내에 속해야 함
-		&& addr >= stack_bottom - PGSIZE
-		&& addr >= USER_STACK - 0x100000
+		&& (uintptr_t) addr < stack_bottom	// 접근하려는 주소가 스택 범위 내에 속해야 함
+		&& (uintptr_t) addr >= stack_bottom - PGSIZE
+		&& (uintptr_t) addr >= USER_STACK - 0x100000
 	) {
 		vm_stack_growth(addr);
 		return true;
@@ -237,8 +258,8 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 		// printf("[vm_try_handle_fault] no page! %p, %p\n", page, addr);
 		return false;
 	}
-	// printf("[vm_try_handle_fault] found page! %p, %p, %d, %d\n", 
-	// 	page->va, addr, page->operations->type, page->uninit.type);
+	printf("[vm_try_handle_fault] found page! %p, %p, %d, %d\n", 
+		page->va, addr, page->operations->type, page->uninit.type);
 	
 	return vm_do_claim_page (page);
 }
