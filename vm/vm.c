@@ -234,9 +234,6 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr,
 		return false;
 	/* stack growth 가 필요한 상황인지 확인
 		- 이 때, addr은 현재 process의 가상주소
-		- stack growth는 한 번에 1개 page 씩 커지는 상황에 한정 (한 번에 2개 이상의 page가 늘어나야 하는 상황 X)
-		- stack_bottom는 현재 stack pointer가 놓인 page의 끝단
-		- 그러므로 addr은 stack_bottom과 (stack_bottom - PGSIZE) 사이에 있어야 함
 		- stack size는 가이드에 따라 1MB로 제한 (0x100000)
 	 */
 	uintptr_t curr_stack_bottom = thread_current ()->stack_bottom;
