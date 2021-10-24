@@ -24,6 +24,8 @@ int _write (int fd, const void *buffer, unsigned size);
 void _close (int fd);
 void _seek (int fd, unsigned position);
 unsigned _tell (int fd);
+void * _mmap(void *addr, size_t length, int writable, int fd, off_t offset);
+void _munmap(void *addr);
 
 struct lock filesys_lock; // use global lock to avoid race condition on file
 

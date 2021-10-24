@@ -116,6 +116,15 @@ syscall_handler (struct intr_frame *f) {
 		case SYS_CLOSE:                  /* Close a file. */
 			_close(f->R.rdi);
 			break;
+
+		case SYS_MMAP:					 /*  */
+			f->R.rax = _mmap((char *) f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
+			break;
+
+		case SYS_MUNMAP:				 /*  */
+			_munmap((char *) f->R.rdi);
+			break;
+
 		default:
 			printf("  DEFAULT do nothing..\n");
 			_exit(TID_ERROR);
@@ -385,4 +394,14 @@ unsigned _tell (int fd) {
 	position = file_tell(file);
 	lock_release(&filesys_lock);
 	return position;
+}
+
+void * _mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
+	// printf("[_mmap] %p, %ld, %d, %d, %d\n", addr, length, writable, fd, offset);
+
+	return NULL;
+}
+
+void _munmap (void *addr) {
+
 }
