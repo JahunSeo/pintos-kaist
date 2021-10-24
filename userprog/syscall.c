@@ -409,10 +409,11 @@ void * _mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 		|| (uintptr_t) addr % PGSIZE != 0
 		|| (uintptr_t) offset % PGSIZE != 0
 		|| length <= 0)
-		_exit(-1);
+		goto error;
 	if (fd == 0 || fd == 1)
-		_exit(-1);
+		goto error;
 
+error:
 	return NULL;
 }
 
