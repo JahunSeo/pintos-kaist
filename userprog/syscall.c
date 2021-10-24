@@ -15,6 +15,7 @@
 #include "devices/input.h"
 #include <string.h>
 #include "filesys/file.h"
+#include "vm/file.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -417,9 +418,16 @@ void * _mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 	*/
 	for (uintptr_t tmp_addr = addr; tmp_addr < addr + length; tmp_addr += PGSIZE) {
 		// 이미 해당 가상주소 영역이 다른 목적으로 사용되고 있다면 종료
-		if (spt_find_page(thread_current()->spt, tmp_addr)) 
+		if (spt_find_page(&thread_current()->spt, tmp_addr) != NULL) 
 			goto error;
 	}
+	/* file descriptor table에서 file 가져오기 */
+	struct file* file;
+	if (file = process_get_file(fd) == NULL)
+		goto error;
+
+	/* mmap 실행 */
+	return do_mmap(addr, length, writable, fd, offset);
 
 error:
 	return NULL;
