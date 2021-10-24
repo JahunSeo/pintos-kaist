@@ -141,6 +141,7 @@ syscall_handler (struct intr_frame *f) {
 */
 void check_address(const char *uaddr) {
 	struct thread *curr = thread_current();
+	// printf("  [check_address] %p, %d, %p\n", uaddr, is_user_vaddr(uaddr), pml4_get_page(curr->pml4, uaddr));
 	if (uaddr == NULL 
 		|| !is_user_vaddr(uaddr) 
 		|| pml4_get_page(curr->pml4, uaddr) == NULL) {
@@ -230,12 +231,14 @@ void _exit (int status) {
 }
 
 tid_t _fork (const char* thread_name, struct intr_frame *if_) {
+	// printf("[_fork] thread_name %s, %p\n", thread_name, thread_name);
 	check_address(thread_name);
 	return process_fork(thread_name, if_);
 }
 
 int _exec (const char *file_name) {
 	/* 잘못된 주소값인지 확인 */
+	// printf("[_exec] file_name %s, %p\n", file_name, file_name);
 	check_address(file_name);
 
 	/* Make a copy of FILE_NAME.
@@ -276,12 +279,12 @@ bool _remove (const char *file_name) {
 }
 
 int _open (const char *file_name) {
+	// printf("[_open] file_name %s, %p\n", file_name, file_name);
 	check_address(file_name);
 	struct file* file;
 	lock_acquire(&filesys_lock);
 	file = filesys_open(file_name);
 	lock_release(&filesys_lock);
-
 
 	if (file == NULL) {
 		return TID_ERROR;
@@ -298,6 +301,7 @@ int _open (const char *file_name) {
 
 int _read (int fd, void *buffer, unsigned size) {
 	/* buffer로 들어온 주소값이 유효한지 확인 */
+	// printf("[_read] buffer %p\n", buffer);
 	check_address(buffer);
 	/* 현재 thread의 FDT에서 fd 값이 유효한지 확인 */
 	struct file *file = process_get_file(fd);
@@ -342,6 +346,7 @@ int _filesize (int fd) {
 
 int _write (int fd, const void *buffer, unsigned size) {
 	/* buffer로 들어온 주소값이 유효한지 확인 */
+	// printf("[_write] buffer %p\n", buffer);
 	check_address(buffer);
 	/* 현재 thread의 FDT에서 fd 값이 유효한지 확인 */
 	struct file *file = process_get_file(fd);
@@ -398,6 +403,15 @@ unsigned _tell (int fd) {
 
 void * _mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 	// printf("[_mmap] %p, %ld, %d, %d, %d\n", addr, length, writable, fd, offset);
+	/* 입력값 유효성 체크 */
+	if (addr == NULL
+		|| !is_user_vaddr(NULL)
+		|| (uintptr_t) addr % PGSIZE != 0
+		|| (uintptr_t) offset % PGSIZE != 0
+		|| length <= 0)
+		_exit(-1);
+	if (fd == 0 || fd == 1)
+		_exit(-1);
 
 	return NULL;
 }
