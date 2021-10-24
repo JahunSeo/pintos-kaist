@@ -406,12 +406,20 @@ void * _mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 	/* 입력값 유효성 체크 */
 	if (addr == NULL
 		|| !is_user_vaddr(NULL)
-		|| (uintptr_t) addr % PGSIZE != 0
-		|| (uintptr_t) offset % PGSIZE != 0
+		|| (uintptr_t) addr % PGSIZE != 0    // addr이 page-aligned 되어야 함
+		// || (uintptr_t) offset % PGSIZE != 0
 		|| length <= 0)
 		goto error;
 	if (fd == 0 || fd == 1)
 		goto error;
+	/* 가상주소 공간에서 기존의 페이지들과 겹치지 않는지 확인 
+		- addr와 addr+length 사이에 있는 페이지들이 기존에 spt에 등록된 페이지와 겹치지 않는지 확인
+	*/
+	for (uintptr_t tmp_addr = addr; tmp_addr < addr + length; tmp_addr += PGSIZE) {
+		// 이미 해당 가상주소 영역이 다른 목적으로 사용되고 있다면 종료
+		if (spt_find_page(thread_current()->spt, tmp_addr)) 
+			goto error;
+	}
 
 error:
 	return NULL;
