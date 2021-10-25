@@ -2,6 +2,8 @@
 #define VM_FILE_H
 #include "filesys/file.h"
 #include "vm/vm.h"
+// ADD
+#include <list.h>
 
 struct page;
 enum vm_type;
@@ -20,6 +22,6 @@ struct mmap_info {
 	size_t length;
 	int page_cnt;
 	struct list_elem elem;
-}
+};
 
 #endif

@@ -97,7 +97,7 @@ do_mmap (void *addr, size_t length, int writable,
 		offset += page_read_bytes;
 		page_cnt++;
 	}
-	struct mmap_info *info = malloc(sizeof(mmap_info));
+	struct mmap_info *info = malloc(sizeof(struct mmap_info));
 	info->addr = addr;
 	info->length = length;
 	info->page_cnt = page_cnt;
