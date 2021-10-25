@@ -80,6 +80,7 @@ do_mmap (void *addr, size_t length, int writable,
 		aux->ofs = offset;
 		aux->page_read_bytes = page_read_bytes;
 		aux->page_zero_bytes = page_zero_bytes;
+		aux->type = VM_FILE;
 
 		if (!vm_alloc_page_with_initializer (VM_FILE, tmp_addr,
 					writable, lazy_load_segment, aux))

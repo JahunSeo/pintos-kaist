@@ -129,6 +129,7 @@ struct load_info {
 	off_t ofs;
 	size_t page_read_bytes;
 	size_t page_zero_bytes;
+	enum vm_type type;
 };
 
 #endif  /* VM_VM_H */

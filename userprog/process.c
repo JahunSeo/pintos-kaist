@@ -713,7 +713,14 @@ lazy_load_segment (struct page *page, void *aux) {
 		vm_dealloc_page(page); // destroy and free page
 		return false;		
 	}
-	memset (page->frame->kva + page_read_bytes, 0, page_zero_bytes);	
+	memset (page->frame->kva + page_read_bytes, 0, page_zero_bytes);
+	// page type이 VM_FILE 인 경우
+	if (info->type == VM_FILE) {
+		printf("[lazy_load_segment] type %d\n", info->type);
+		// page table에 해당 page의 dirty bit를 false로 초기화
+		pml4_set_dirty(&thread_current()->pml4, page->va, false);
+	}
+
 	// aux의 역할이 끝났으므로 할당되었던 메모리 free
 	free(info);
 	return true;
@@ -755,6 +762,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		aux->ofs = ofs;
 		aux->page_read_bytes = page_read_bytes;
 		aux->page_zero_bytes = page_zero_bytes;
+		aux->type = VM_ANON;
 
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
 					writable, lazy_load_segment, aux))
