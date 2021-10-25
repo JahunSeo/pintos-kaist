@@ -1,6 +1,8 @@
 /* file.c: Implementation of memory backed file object (mmaped object). */
 
 #include "vm/vm.h"
+// ADD
+#include <list.h>
 
 static bool file_backed_swap_in (struct page *page, void *kva);
 static bool file_backed_swap_out (struct page *page);
@@ -14,9 +16,13 @@ static const struct page_operations file_ops = {
 	.type = VM_FILE,
 };
 
+/* mmap list */
+static struct list mmap_list;
+
 /* The initializer of file vm */
 void
 vm_file_init (void) {
+	list_init(&mmap_list);
 }
 
 /* Initialize the file backed page */
@@ -57,8 +63,10 @@ do_mmap (void *addr, size_t length, int writable,
 		struct file *file, off_t offset) {
 	printf("[do_mmap] %p, %ld, %d, %d, %d\n", addr, length, writable, file, offset);
 	// load_segment 참고
+	void *tmp_addr = addr;
 	uint32_t read_bytes = length;
 	uint32_t zero_bytes = PGSIZE - (length % PGSIZE);
+	int page_cnt = 0;
 	ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
 
 	while (read_bytes > 0 || zero_bytes > 0) {
@@ -77,17 +85,24 @@ do_mmap (void *addr, size_t length, int writable,
 		aux->page_read_bytes = page_read_bytes;
 		aux->page_zero_bytes = page_zero_bytes;
 
-		if (!vm_alloc_page_with_initializer (VM_FILE, addr,
+		if (!vm_alloc_page_with_initializer (VM_FILE, tmp_addr,
 					writable, lazy_load_file, aux))
 			return NULL;
 
 		/* Advance. */
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
-		addr += PGSIZE;
+		tmp_addr += PGSIZE;
 		// 다음 page에 전달할 ofs를 업데이트
 		offset += page_read_bytes;
+		page_cnt++;
 	}
+	struct mmap_info *info = malloc(sizeof(mmap_info));
+	info->addr = addr;
+	info->length = length;
+	info->page_cnt = page_cnt;
+	list_push_back(&mmap_list, &info->elem);
+
 	return addr;
 }
 
