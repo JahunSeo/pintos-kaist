@@ -3,6 +3,7 @@
 #include "vm/vm.h"
 // ADD
 #include <list.h>
+#include "userprog/process.h"
 
 static bool file_backed_swap_in (struct page *page, void *kva);
 static bool file_backed_swap_out (struct page *page);
@@ -52,11 +53,6 @@ file_backed_destroy (struct page *page) {
 	struct file_page *file_page UNUSED = &page->file;
 }
 
-static bool
-lazy_load_file (struct page *page, void *aux) {
-	return false;
-}
-
 /* Do the mmap */
 void *
 do_mmap (void *addr, size_t length, int writable,
@@ -86,7 +82,7 @@ do_mmap (void *addr, size_t length, int writable,
 		aux->page_zero_bytes = page_zero_bytes;
 
 		if (!vm_alloc_page_with_initializer (VM_FILE, tmp_addr,
-					writable, lazy_load_file, aux))
+					writable, lazy_load_segment, aux))
 			return NULL;
 
 		/* Advance. */
@@ -103,6 +99,7 @@ do_mmap (void *addr, size_t length, int writable,
 	info->page_cnt = page_cnt;
 	list_push_back(&mmap_list, &info->elem);
 
+	printf("[do_mmap] %p, %ld, %d\n", info->addr, info->length, info->page_cnt);
 	return addr;
 }
 
