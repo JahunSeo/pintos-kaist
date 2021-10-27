@@ -710,7 +710,7 @@ lazy_load_segment (struct page *page, void *aux) {
 	// file_read로 file을 읽어 물리메모리에 저장
 	file_seek (file, ofs);
 	if (file_read (file, page->frame->kva, page_read_bytes) != (int) page_read_bytes) {
-		vm_dealloc_page(page); // destroy and free page
+		spt_remove_page(&thread_current()->spt, page); // destroy and free page
 		return false;		
 	}
 	memset (page->frame->kva + page_read_bytes, 0, page_zero_bytes);

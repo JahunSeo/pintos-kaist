@@ -67,7 +67,7 @@ lazy_load_file (struct page *page, void *aux) {
 	size_t read_results = file_read (file, page->frame->kva, page_read_bytes);
 	// TODO: file read 과정에서 발생할만한 에러가 있을까?
 	if (false) {
-		vm_dealloc_page(page); // destroy and free page
+		spt_remove_page(&thread_current()->spt, page); // destroy and free page
 		return false;	
 	}
 	// 페이지의 남은 부분을 0으로 처리: testcase 'mmap-read' 참고
@@ -140,7 +140,7 @@ do_mmap (void *addr, size_t length, int writable,
 /* Do the munmap */
 void
 do_munmap (void *addr) {
-	printf("[do_munmap] %p\n", addr);
+	// printf("[do_munmap] %p\n", addr);
 	// mmap_list에서 addr로 시작하는 mmap 영역 찾기
 	struct mmap_info *info;
 	struct list_elem *e;
@@ -151,14 +151,14 @@ do_munmap (void *addr) {
 		}
 	}
 	if (info != NULL) {
-		printf("[do_munmap] found! count: %d\n", info->page_cnt);
+		// printf("[do_munmap] found! count: %d\n", info->page_cnt);
 		// mmap되었던 페이지들을 전체 dealloc
 		struct page *page;
 		for (int i=0; i<info->page_cnt; i++) {
 			page = spt_find_page(&thread_current()->spt, addr);
 			// page가 없어진 상황은 에러인가? 아니면 넘어가도 되는가?
 			if (page)
-				vm_dealloc_page(page);
+				spt_remove_page(&thread_current()->spt, page);
 		}
 		// 할당되었던 info 영역 free
 		free(info);
