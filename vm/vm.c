@@ -145,14 +145,12 @@ static struct frame *
 vm_get_victim (void) {
 	// printf("[vm_get_victim] start\n");
 	/* TODO: The policy for eviction is up to you. */
-	// struct thread *curr = thread_current();
+	struct thread *curr = thread_current();
 	struct frame *victim;
 	// thread 간 race problem을 방지하기 위해 lock으로 접근을 통제
 	lock_acquire(&clock_lock);
 	// 마지막 탐색 위치부터 탐색 시작
 	struct list_elem *e = clock_elem;
-	if (e == NULL)
-		e = list_begin(&frame_table);
 	// frame_table을 하나씩 돌며 access되지 않은 frame 찾기
 	// - current thread에서 accessed 여부를 체크
 	// - 즉 현재 로직에서는 current thread가 아닌 다른 thread의 page는 바로 victim으로 처리됨
@@ -160,16 +158,18 @@ vm_get_victim (void) {
 	// - [실험] frame에서 thread를 관리하는 방향으로 시도!!
 	bool found = false;
 	while (!found) {
+		if (e == NULL || e == list_end(&frame_table))
+			e = list_begin(&frame_table);
 		// 한 바퀴 돌면서 victim을 못 찾지 못한 경우(즉 모두 accessed 였던 경우) 반복해 순회 
 		//  - 최대 for loop 이 3번 시작됨
 		for (clock_elem = e; 
 		clock_elem != list_end(&frame_table); 
 		clock_elem = list_next(clock_elem)) {
 			victim = list_entry (clock_elem, struct frame, elem);
-			// if (pml4_is_accessed(curr->pml4, victim->page->va))	{
-			// 	pml4_set_accessed(curr->pml4, victim->page->va, 0);
-			if (pml4_is_accessed(victim->thread->pml4, victim->page->va)) {
-				pml4_set_accessed(victim->thread->pml4, victim->page->va, 0);
+			if (pml4_is_accessed(curr->pml4, victim->page->va))	{
+				pml4_set_accessed(curr->pml4, victim->page->va, 0);
+			// if (pml4_is_accessed(victim->thread->pml4, victim->page->va)) {
+			// 	pml4_set_accessed(victim->thread->pml4, victim->page->va, 0);
 			} else {
 				// 현재 victim으로 탐색 종료
 				found = true;
