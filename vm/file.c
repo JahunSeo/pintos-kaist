@@ -33,6 +33,12 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 	page->operations = &file_ops;
 
 	struct file_page *file_page = &page->file;
+	// aux에 담겨 있는 정보들로 file_page 업데이트: file 주소값, offset
+	struct load_info *info = page->uninit.aux;
+	// printf("[file_backed_initializer] %p, %p, %d, %d\n", page, info->file, info->ofs, info->page_read_bytes);
+	file_page->file = info->file;
+	file_page->ofs = info->ofs;
+	return true;
 }
 
 /* Swap in the page by read contents from the file. */

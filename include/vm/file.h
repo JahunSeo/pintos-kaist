@@ -9,6 +9,11 @@ struct page;
 enum vm_type;
 
 struct file_page {
+	// munmap 등에서 page가 dirty 상태일 때, 다시 저장해주기 위해 file을 들고 있어야 함
+	struct file* file;
+	// 파일에 저장할 위치를 파악하기 위해 offset도 들고 있어야 함
+	off_t ofs;
+	size_t size;
 };
 
 void vm_file_init (void);
