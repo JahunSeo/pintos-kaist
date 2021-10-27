@@ -434,5 +434,5 @@ error:
 }
 
 void _munmap (void *addr) {
-
+	do_munmap(addr);
 }
