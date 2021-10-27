@@ -77,6 +77,7 @@ file_backed_swap_out (struct page *page) {
 	// pml4에서 빠졌음을 표시
 	// pml4_clear_page(thread_current()->pml4, page->va);
 	pml4_clear_page(page->frame->thread->pml4, page->va);
+	page->frame = NULL;
 	return true;
 }
 
@@ -91,6 +92,11 @@ file_backed_destroy (struct page *page) {
 		file_write(file_page->file, page->va, file_page->size);
 	}
 	file_close(file_page->file);
+    // frame에 할당되었던 메모리 해제
+	if (page->frame != NULL) {
+		list_remove (&page->frame->elem);
+		free(page->frame);
+	}
 }
 
 /* lazy_load_file */

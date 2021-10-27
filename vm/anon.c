@@ -128,6 +128,8 @@ anon_swap_out (struct page *page) {
 	// pml4_clear_page(thread_current()->pml4, page->va);
 	pml4_clear_page(page->frame->thread->pml4, page->va);
 	// printf("[anon_swap_out] done %p\n", page->va);
+	pml4_set_dirty (page->frame->thread->pml4, page->va, false);
+	page->frame = NULL;
 	return true;
 }
 
@@ -135,7 +137,16 @@ anon_swap_out (struct page *page) {
 static void
 anon_destroy (struct page *page) {
 	struct anon_page *anon_page = &page->anon;
-	// page가 담겨 있던 frame에 해당 page가 삭제되었다는 표시를 해둠
-	if (page->frame)
-		page->frame->page = NULL;
+	// frame에 할당되었던 메모리 해제
+	if (page->frame != NULL) {
+		list_remove (&page->frame->elem);
+		free(page->frame);
+	} 
+	// 만약 swap 되어 있었다면 
+	else {
+		struct anon_page *anon_page = &page->anon;
+		if (anon_page->swap_idx != INITIAL_SWAP_IDX) {
+			bitmap_set (swap_table, anon_page->swap_idx, false);
+		}
+	}
 }
