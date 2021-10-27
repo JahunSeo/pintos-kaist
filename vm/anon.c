@@ -5,6 +5,7 @@
 
 // ADD
 #include <round.h>
+#include <bitmap.h>
 // SECTORS_PER_PAGE: 한 PAGE를 수용하는데 필요한 disk sector의 수 (4096 bytes // 512 bytes)
 #define SECTORS_PER_PAGE DIV_ROUND_UP(PGSIZE, DISK_SECTOR_SIZE)
 
@@ -41,7 +42,7 @@ void
 vm_anon_init (void) {
 	/* TODO: Set up the swap_disk. */
 	// disk에서 swap을 위한 영역 받아오기: swap을 위해서는 1, 1로 설정
-	swap_disk = dist_get(1, 1); 
+	swap_disk = disk_get(1, 1); 
 	// 섹터 단위로 표현된 swap disk의 크기
 	//  - the size of disk D, measured in DISK_SECTOR_SIZE-byte sectors. 
 	disk_sector_t disk_capacity = disk_size(swap_disk);

@@ -8,9 +8,12 @@
 #include <hash.h>
 #include <list.h>
 #include "threads/mmu.h"
+#include "threads/synch.h"
 
 /* frame_table */
 static struct list frame_table;
+/* evict victim 로직(clock algorithm) 관련 */
+static struct lock clock_lock;
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -27,6 +30,8 @@ vm_init (void) {
 	// frame_table 초기화
 	// - 정적 변수로 정의된 상태 (만약 malloc으로 할당한다면 여기서 처리)
 	list_init(&frame_table); 
+	// clock lock 초기화
+	lock_init(&clock_lock);
 }
 
 /* Get the type of the page. This function is useful if you want to know the
