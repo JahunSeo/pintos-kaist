@@ -51,6 +51,8 @@ file_backed_swap_out (struct page *page) {
 static void
 file_backed_destroy (struct page *page) {
 	struct file_page *file_page UNUSED = &page->file;
+
+
 }
 
 /* lazy_load_file */
@@ -77,6 +79,7 @@ lazy_load_file (struct page *page, void *aux) {
 	// page table에 해당 page의 dirty bit를 false로 초기화
 	pml4_set_dirty(&thread_current()->pml4, page->va, false);
 	// aux의 역할이 끝났으므로 할당되었던 메모리 free
+	file_close(info->file);
 	free(info);
 	return true;
 }
@@ -109,7 +112,7 @@ do_mmap (void *addr, size_t length, int writable,
 		// lazy_load_segment에 전달할 load_info를 구성하기 위해 메모리를 할당 받음
 		struct load_info *aux = malloc(sizeof(struct load_info));
 		// aux에 필요한 정보 저장
-		aux->file = file;
+		aux->file = file_reopen(file);
 		aux->ofs = offset;
 		aux->page_read_bytes = page_read_bytes;
 		aux->page_zero_bytes = page_zero_bytes;
@@ -162,6 +165,7 @@ do_munmap (void *addr) {
 			addr = addr + PGSIZE;
 		}
 		// 할당되었던 info 영역 free
+		list_remove(&info->elem);
 		free(info);
 	}
 }
