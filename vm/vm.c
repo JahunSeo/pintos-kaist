@@ -141,9 +141,47 @@ spt_remove_page (struct supplemental_page_table *spt, struct page *page) {
 /* Get the struct frame, that will be evicted. */
 static struct frame *
 vm_get_victim (void) {
-	struct frame *victim = NULL;
-	 /* TODO: The policy for eviction is up to you. */
-
+	printf("[vm_get_victim] start\n");
+	/* TODO: The policy for eviction is up to you. */
+	// struct thread *curr = thread_current();
+	struct frame *victim;
+	struct list_elem *e;
+	// thread 간 race problem을 방지하기 위해 lock으로 접근을 통제
+	lock_acquire(&clock_lock);
+	// frame_table을 하나씩 돌며 access되지 않은 frame 찾기
+	// - current thread에서 accessed 여부를 체크
+	// - 즉 현재 로직에서는 current thread가 아닌 다른 thread의 page는 바로 victim으로 처리됨
+	// - 만약 다른 프로세스도 포함시키고 싶다면 frame 구조체에 thread member를 추가해주면 될 듯
+	// - [실험] frame에서 thread를 관리하는 방향으로 시도!!
+	bool found = false;
+	for (e = list_begin(&frame_table); e != list_end(&frame_table); e = list_next(e)) {
+		victim = list_entry (e, struct frame, elem);
+		// if (pml4_is_accessed(curr->pml4, victim->page->va))	{
+		// 	pml4_set_accessed(curr->pml4, victim->page->va, 0);
+		if (pml4_is_accessed(victim->thread->pml4, victim->page->va)) {
+			pml4_set_accessed(victim->thread->pml4, victim->page->va, 0);
+		} else {
+			// 현재 victim으로 탐색 종료
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		// 한 바퀴 돌면서 victim을 못 찾지 못한 경우(즉 모두 accessed 였던 경우) 한 번 더 순회 
+		for (e = list_begin(&frame_table); e != list_end(&frame_table); e = list_next(e)) {
+			victim = list_entry (e, struct frame, elem);
+			// if (pml4_is_accessed(curr->pml4, victim->page->va))	{
+			// 	pml4_set_accessed(curr->pml4, victim->page->va, 0);
+			if (pml4_is_accessed(victim->thread->pml4, victim->page->va)) {
+				pml4_set_accessed(victim->thread->pml4, victim->page->va, 0);
+			} else {
+				found = true;
+				break;
+			}
+		}
+	}
+	lock_release(&clock_lock);
+	printf("[vm_get_victim] end %p\n", victim);
 	return victim;
 }
 
@@ -163,6 +201,7 @@ vm_evict_frame (void) {
 	// - 주의! frame을 비워주지 않는다면 서로 다른 process 간에 침범이 발생할 수 있음
 	// - 가령, swap out된 process B의 page를 process A가 볼 수도 있음
 	victim->page = NULL;
+	victim->thread = NULL;
 	memset(victim->kva, 0, PGSIZE);
 
 	return victim;
@@ -192,6 +231,7 @@ vm_get_frame (void) {
 		frame = (struct frame *)malloc(sizeof(struct frame));
 		frame->kva = phys_page;
 		frame->page = NULL; // 여기의 page는 phys_page에 들어갈 가상 주소 공간의 page
+		frame->thread = NULL; // 실험적 코드
 		// 새로 생성한 frame을 frame_table에 추가
 		// - 일단 push_back으로 처리하되, 추후 victim 정하는 정책에 맞게 수정
 		list_push_back(&frame_table, &frame->elem);
@@ -329,6 +369,8 @@ vm_do_claim_page (struct page *page) {
 	struct thread *t = thread_current();
 	if (pml4_get_page (t->pml4, page->va) == NULL
 		&& pml4_set_page (t->pml4, page->va, frame->kva, page->writable)) {
+		// 실험적 코드
+		frame->thread = thread_current();
 		return swap_in (page, frame->kva);
 	}
 	// page table에 추가 실패 시 처리

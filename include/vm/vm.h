@@ -70,6 +70,7 @@ struct frame {
 	struct page *page;
 	/* frame table 관련: data structure를 list 로 결정 */
 	struct list_elem elem;
+	struct thread *thread;
 };
 
 /* The function table for page operations.
