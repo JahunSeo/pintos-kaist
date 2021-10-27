@@ -8,6 +8,7 @@
 #include <bitmap.h>
 // SECTORS_PER_PAGE: 한 PAGE를 수용하는데 필요한 disk sector의 수 (4096 bytes // 512 bytes)
 #define SECTORS_PER_PAGE DIV_ROUND_UP(PGSIZE, DISK_SECTOR_SIZE)
+#define INITIAL_SWAP_IDX -1
 
 /* DO NOT MODIFY BELOW LINE */
 static struct disk *swap_disk;
@@ -63,14 +64,31 @@ anon_initializer (struct page *page, enum vm_type type, void *kva) {
 		page->operations = &anon_ops;
 	}
 	struct anon_page *anon_page = &page->anon;
+	anon_page->swap_idx = INITIAL_SWAP_IDX; // swap_idx가 0부터 시작하기 때문에 init값으로 -1
 }
 
 /* Swap in the page by read contents from the swap disk. */
 static bool
 anon_swap_in (struct page *page, void *kva) {
 	struct anon_page *anon_page = &page->anon;
-
-
+	// printf("[anon_swap_in] swap_idx %d\n", anon_page->swap_idx);
+	if (anon_page->swap_idx == INITIAL_SWAP_IDX)
+		return false;
+	// swap disk에 있는 내용을 page에 옮겨 적기
+	// - page를 옮겨 적기 위해서는 SECTORS_PER_PAGE 개수의 sector가 필요함
+	// - 한 sector의 크기는 DISK_SECTOR_SIZE bytes임
+	disk_sector_t sec_no;
+	uintptr_t offset; // 주의! 자료형에 따라 값이 제대로 안 잡힐 수 있음
+	for (int i=0; i < SECTORS_PER_PAGE; i++) {
+		sec_no = anon_page->swap_idx * SECTORS_PER_PAGE + i;
+		offset = page->frame->kva + DISK_SECTOR_SIZE * i;
+		disk_read(swap_disk, sec_no, offset);
+	}
+	// swap table의 해당 위치가 비었음을 표시
+	bitmap_set(swap_table, anon_page->swap_idx, false);
+	// swap_idx 초기화
+	anon_page->swap_idx = INITIAL_SWAP_IDX;
+	return true;
 }
 
 /* Swap out the page by writing contents to the swap disk. */
