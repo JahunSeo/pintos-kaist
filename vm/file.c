@@ -56,7 +56,14 @@ file_backed_swap_out (struct page *page) {
 /* Destory the file backed page. PAGE will be freed by the caller. */
 static void
 file_backed_destroy (struct page *page) {
-	struct file_page *file_page UNUSED = &page->file;
+	struct file_page *file_page = &page->file;
+	// printf("[file_backed_destroy] %p\n", page);
+	if (pml4_is_dirty(thread_current()->pml4, page->va)) {
+		// printf("[file_backed_destroy] handle dirty case\n");
+		file_seek(file_page->file, file_page->ofs);
+		file_write(file_page->file, page->va, file_page->size);
+	}
+	file_close(file_page->file);
 
 
 }
@@ -73,6 +80,7 @@ lazy_load_file (struct page *page, void *aux) {
 	// file_read로 file을 읽어 물리메모리에 저장
 	file_seek (file, ofs);
 	size_t read_results = file_read (file, page->frame->kva, page_read_bytes);
+	page->file.size = read_results;
 	// TODO: file read 과정에서 발생할만한 에러가 있을까?
 	if (false) {
 		spt_remove_page(&thread_current()->spt, page); // destroy and free page
@@ -85,7 +93,6 @@ lazy_load_file (struct page *page, void *aux) {
 	// page table에 해당 page의 dirty bit를 false로 초기화
 	pml4_set_dirty(&thread_current()->pml4, page->va, false);
 	// aux의 역할이 끝났으므로 할당되었던 메모리 free
-	file_close(info->file);
 	free(info);
 	return true;
 }
