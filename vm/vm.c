@@ -146,10 +146,21 @@ vm_get_victim (void) {
  * Return NULL on error.*/
 static struct frame *
 vm_evict_frame (void) {
-	struct frame *victim UNUSED = vm_get_victim ();
+	struct frame *victim = vm_get_victim ();
 	/* TODO: swap out the victim and return the evicted frame. */
+	if (victim == NULL)
+		return NULL;
+	// swap out 처리: page type에 맞게 처리됨
+	if (!swap_out(victim->page))
+		PANIC("fail to swap out.. maybe swap disk is full.");
 
-	return NULL;
+	// frame 비워주기
+	// - 주의! frame을 비워주지 않는다면 서로 다른 process 간에 침범이 발생할 수 있음
+	// - 가령, swap out된 process B의 page를 process A가 볼 수도 있음
+	victim->page = NULL;
+	memset(victim->kva, 0, PGSIZE);
+
+	return victim;
 }
 
 /* palloc() and get frame. If there is no available page, evict the page
@@ -166,10 +177,9 @@ vm_get_frame (void) {
 	// page 할당에 실패한 경우 (이미 가득찬 경우)
 	if (phys_page == NULL) {
 		// 임시로 PANIC 처리
-		PANIC("TODO: vm_evict_frame");
+		// PANIC("TODO: vm_evict_frame");
 		// TODO: 기존의 frame 중 victim을 정해 swap out 처리 후 재활용 
 		frame = vm_evict_frame();
-		frame->page = NULL;
 	} 
 	// page 할당에 성공한 경우
 	else {
