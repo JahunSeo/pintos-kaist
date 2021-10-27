@@ -62,6 +62,10 @@ do_mmap (void *addr, size_t length, int writable,
 	void *tmp_addr = addr;
 	uint32_t read_bytes = length;
 	uint32_t zero_bytes = PGSIZE - (length % PGSIZE);
+	// 임시 코드: 더 좋은 방법 생각해보기
+	if (zero_bytes == PGSIZE) {
+		zero_bytes = 0;
+	}
 	int page_cnt = 0;
 	ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
 
