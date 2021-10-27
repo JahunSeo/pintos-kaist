@@ -239,6 +239,7 @@ vm_get_frame (void) {
 	
 	ASSERT (frame != NULL);
 	ASSERT (frame->page == NULL);
+
 	return frame;
 }
 
@@ -371,9 +372,11 @@ vm_do_claim_page (struct page *page) {
 		&& pml4_set_page (t->pml4, page->va, frame->kva, page->writable)) {
 		// 실험적 코드
 		frame->thread = thread_current();
+		// printf("[vm_do_claim_page] before swap_in %p %p\n", page->va, frame->kva);
 		return swap_in (page, frame->kva);
 	}
 	// page table에 추가 실패 시 처리
+	// printf("[vm_do_claim_page] fail swap_in\n");
 	return false;	
 }
 

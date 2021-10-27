@@ -44,12 +44,28 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 /* Swap in the page by read contents from the file. */
 static bool
 file_backed_swap_in (struct page *page, void *kva) {
-	struct file_page *file_page UNUSED = &page->file;
+	// printf("[file_backed_swap_in] %p, %p\n", page->va, kva);
+	struct file_page *file_page = &page->file;
+	// file validation check
+	if (file_page->file == NULL)
+		return false;
+	// 읽어올 위치 설정
+	file_seek(file_page->file, file_page->ofs);
+	// 
+	// printf("[file_backed_swap_in] before read %p, %d\n", file_page->file, file_page->ofs);
+	off_t read_results = file_read(file_page->file, kva, file_page->size);
+	// if (read_results != file_page->size)
+	// 	return false;
+	if (read_results < PGSIZE)
+		memset(kva + read_results, 0, PGSIZE - read_results);
+
+	return true;
 }
 
 /* Swap out the page by writeback contents to the file. */
 static bool
 file_backed_swap_out (struct page *page) {
+	// printf("[file_backed_swap_out] %p\n", page->va);
 	struct file_page *file_page = &page->file;
 	// 수정된 상태인지 확인하여 수정된 경우 file에 저장
 	if (pml4_is_dirty(page->frame->thread->pml4, page->va)) {
