@@ -427,7 +427,7 @@ void * _mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 		goto error;
 
 	/* mmap 실행 */
-	return do_mmap(addr, length, writable, fd, offset);
+	return do_mmap(addr, length, writable, file, offset);
 
 error:
 	return NULL;
