@@ -50,6 +50,7 @@ vm_anon_init (void) {
 	// disk 내에 몇 개의 페이지를 수용 가능한지 계산
 	//  - SECTORS_PER_PAGE : 한 page를 수용하는데 필요한 sector의 수 (4096byte // 512bytes)
 	size_t max_slot = disk_capacity / SECTORS_PER_PAGE;
+	// printf("[vm_anon_init] max_slot %d\n", max_slot);
 	// swap table 초기화
 	swap_table = bitmap_create(max_slot);
 }
@@ -71,7 +72,7 @@ anon_initializer (struct page *page, enum vm_type type, void *kva) {
 static bool
 anon_swap_in (struct page *page, void *kva) {
 	struct anon_page *anon_page = &page->anon;
-	// printf("[anon_swap_in] swap_idx %d\n", anon_page->swap_idx);
+	// printf("[anon_swap_in] start swap_idx %d\n", anon_page->swap_idx);
 	if (anon_page->swap_idx == INITIAL_SWAP_IDX)
 		return false;
 	// swap disk에 있는 내용을 page에 옮겨 적기
@@ -86,6 +87,7 @@ anon_swap_in (struct page *page, void *kva) {
 	}
 	// swap table의 해당 위치가 비었음을 표시
 	bitmap_set(swap_table, anon_page->swap_idx, false);
+	// printf("[anon_swap_in] end swap_idx %d\n", anon_page->swap_idx);
 	// swap_idx 초기화
 	anon_page->swap_idx = INITIAL_SWAP_IDX;
 	return true;
@@ -104,6 +106,7 @@ anon_swap_out (struct page *page) {
 	// swap table에서 page 1개 들어갈 위치 확보 
 	// - swap table의 해당 slot의 bit들은 false로 초기화
 	size_t swap_idx = bitmap_scan_and_flip (swap_table, 0, 1, false);
+	// printf("[anon_swap_out] swap_idx %d\n", swap_idx);
 	// swap table이 가득 찬 경우 에러 처리
 	if (swap_idx == BITMAP_ERROR)
 		return false;

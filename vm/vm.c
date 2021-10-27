@@ -13,7 +13,8 @@
 /* frame_table */
 static struct list frame_table;
 /* evict victim 로직(clock algorithm) 관련 */
-static struct lock clock_lock;
+static struct lock clock_lock; // race 방지를 위한 lock
+static struct list_elem *clock_elem; // 마지막 탐색 위치부터 이어서하기 위해 보관
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -32,6 +33,7 @@ vm_init (void) {
 	list_init(&frame_table); 
 	// clock lock 초기화
 	lock_init(&clock_lock);
+	clock_elem = NULL;
 }
 
 /* Get the type of the page. This function is useful if you want to know the
@@ -145,41 +147,39 @@ vm_get_victim (void) {
 	/* TODO: The policy for eviction is up to you. */
 	// struct thread *curr = thread_current();
 	struct frame *victim;
-	struct list_elem *e;
 	// thread 간 race problem을 방지하기 위해 lock으로 접근을 통제
 	lock_acquire(&clock_lock);
+	// 마지막 탐색 위치부터 탐색 시작
+	struct list_elem *e = clock_elem;
+	if (e == NULL)
+		e = list_begin(&frame_table);
 	// frame_table을 하나씩 돌며 access되지 않은 frame 찾기
 	// - current thread에서 accessed 여부를 체크
 	// - 즉 현재 로직에서는 current thread가 아닌 다른 thread의 page는 바로 victim으로 처리됨
 	// - 만약 다른 프로세스도 포함시키고 싶다면 frame 구조체에 thread member를 추가해주면 될 듯
 	// - [실험] frame에서 thread를 관리하는 방향으로 시도!!
 	bool found = false;
-	for (e = list_begin(&frame_table); e != list_end(&frame_table); e = list_next(e)) {
-		victim = list_entry (e, struct frame, elem);
-		// if (pml4_is_accessed(curr->pml4, victim->page->va))	{
-		// 	pml4_set_accessed(curr->pml4, victim->page->va, 0);
-		if (pml4_is_accessed(victim->thread->pml4, victim->page->va)) {
-			pml4_set_accessed(victim->thread->pml4, victim->page->va, 0);
-		} else {
-			// 현재 victim으로 탐색 종료
-			found = true;
-			break;
-		}
-	}
-	if (!found) {
-		// 한 바퀴 돌면서 victim을 못 찾지 못한 경우(즉 모두 accessed 였던 경우) 한 번 더 순회 
-		for (e = list_begin(&frame_table); e != list_end(&frame_table); e = list_next(e)) {
-			victim = list_entry (e, struct frame, elem);
+	while (!found) {
+		// 한 바퀴 돌면서 victim을 못 찾지 못한 경우(즉 모두 accessed 였던 경우) 반복해 순회 
+		//  - 최대 for loop 이 3번 시작됨
+		for (clock_elem = e; 
+		clock_elem != list_end(&frame_table); 
+		clock_elem = list_next(clock_elem)) {
+			victim = list_entry (clock_elem, struct frame, elem);
 			// if (pml4_is_accessed(curr->pml4, victim->page->va))	{
 			// 	pml4_set_accessed(curr->pml4, victim->page->va, 0);
 			if (pml4_is_accessed(victim->thread->pml4, victim->page->va)) {
 				pml4_set_accessed(victim->thread->pml4, victim->page->va, 0);
 			} else {
+				// 현재 victim으로 탐색 종료
 				found = true;
 				break;
 			}
 		}
 	}
+	// 다음 elem로 옮겨 둚
+	clock_elem = list_next(clock_elem);
+	// 
 	lock_release(&clock_lock);
 	// printf("[vm_get_victim] end %p\n", victim);
 	return victim;
