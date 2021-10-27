@@ -140,4 +140,27 @@ do_mmap (void *addr, size_t length, int writable,
 /* Do the munmap */
 void
 do_munmap (void *addr) {
+	printf("[do_munmap] %p\n", addr);
+	// mmap_list에서 addr로 시작하는 mmap 영역 찾기
+	struct mmap_info *info;
+	struct list_elem *e;
+	for (e = list_begin (&mmap_list); e != list_end (&mmap_list); e = list_next (e)) {
+		if (list_entry(e, struct mmap_info, elem)->addr == addr) {
+			info = list_entry(e, struct mmap_info, elem);
+			break;
+		}
+	}
+	if (info != NULL) {
+		printf("[do_munmap] found! count: %d\n", info->page_cnt);
+		// mmap되었던 페이지들을 전체 dealloc
+		struct page *page;
+		for (int i=0; i<info->page_cnt; i++) {
+			page = spt_find_page(&thread_current()->spt, addr);
+			// page가 없어진 상황은 에러인가? 아니면 넘어가도 되는가?
+			if (page)
+				vm_dealloc_page(page);
+		}
+		// 할당되었던 info 영역 free
+		free(info);
+	}
 }
