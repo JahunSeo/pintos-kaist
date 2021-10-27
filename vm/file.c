@@ -53,11 +53,40 @@ file_backed_destroy (struct page *page) {
 	struct file_page *file_page UNUSED = &page->file;
 }
 
+/* lazy_load_file */
+static bool
+lazy_load_file (struct page *page, void *aux) {
+	struct load_info *info = (struct load_info *) aux;
+	// printf("[lazy_load_file] type %d\n", info->type);
+	struct file *file = info->file;
+	off_t ofs = info->ofs;
+	size_t page_read_bytes = info->page_read_bytes;
+	// size_t page_zero_bytes = info->page_zero_bytes;
+	// file_read로 file을 읽어 물리메모리에 저장
+	file_seek (file, ofs);
+	size_t read_results = file_read (file, page->frame->kva, page_read_bytes);
+	// TODO: file read 과정에서 발생할만한 에러가 있을까?
+	if (false) {
+		vm_dealloc_page(page); // destroy and free page
+		return false;	
+	}
+	// 페이지의 남은 부분을 0으로 처리: testcase 'mmap-read' 참고
+	if (read_results < PGSIZE) {
+		memset (page->frame->kva + read_results, 0, PGSIZE - read_results);
+	}
+	// page table에 해당 page의 dirty bit를 false로 초기화
+	pml4_set_dirty(&thread_current()->pml4, page->va, false);
+	// aux의 역할이 끝났으므로 할당되었던 메모리 free
+	free(info);
+	return true;
+}
+
+
 /* Do the mmap */
 void *
 do_mmap (void *addr, size_t length, int writable,
 		struct file *file, off_t offset) {
-	printf("[do_mmap] %p, %ld, %d, %d, %d\n", addr, length, writable, file, offset);
+	// printf("[do_mmap] %p, %ld, %d, %p, %d\n", addr, length, writable, file, offset);
 	// load_segment 참고
 	void *tmp_addr = addr;
 	uint32_t read_bytes = length;
@@ -87,7 +116,7 @@ do_mmap (void *addr, size_t length, int writable,
 		aux->type = VM_FILE;
 
 		if (!vm_alloc_page_with_initializer (VM_FILE, tmp_addr,
-					writable, lazy_load_segment, aux))
+					writable, lazy_load_file, aux))
 			return NULL;
 
 		/* Advance. */
@@ -104,7 +133,7 @@ do_mmap (void *addr, size_t length, int writable,
 	info->page_cnt = page_cnt;
 	list_push_back(&mmap_list, &info->elem);
 
-	printf("[do_mmap] %p, %ld, %d\n", info->addr, info->length, info->page_cnt);
+	// printf("[do_mmap] %p, %ld, %d\n", info->addr, info->length, info->page_cnt);
 	return addr;
 }
 
