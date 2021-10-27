@@ -50,7 +50,18 @@ file_backed_swap_in (struct page *page, void *kva) {
 /* Swap out the page by writeback contents to the file. */
 static bool
 file_backed_swap_out (struct page *page) {
-	struct file_page *file_page UNUSED = &page->file;
+	struct file_page *file_page = &page->file;
+	// 수정된 상태인지 확인하여 수정된 경우 file에 저장
+	if (pml4_is_dirty(page->frame->thread->pml4, page->va)) {
+		file_seek(file_page->file, file_page->ofs);
+		file_write(file_page->file, page->va, file_page->size);
+		// 다시 swap in 할 때는 저장된 상태에서 읽어올 것이므로, dirty false
+		pml4_set_dirty (page->frame->thread->pml4, page->va, false);
+	}
+	// pml4에서 빠졌음을 표시
+	// pml4_clear_page(thread_current()->pml4, page->va);
+	pml4_clear_page(page->frame->thread->pml4, page->va);
+	return true;
 }
 
 /* Destory the file backed page. PAGE will be freed by the caller. */
