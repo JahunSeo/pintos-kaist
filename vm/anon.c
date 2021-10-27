@@ -4,9 +4,9 @@
 #include "devices/disk.h"
 
 // ADD
-#define CEILING(x, y) (((x) + (y) - 1) / (y))
+#include <round.h>
 // SECTORS_PER_PAGE: 한 PAGE를 수용하는데 필요한 disk sector의 수 (4096 bytes // 512 bytes)
-#define SECTORS_PER_PAGE CEILING(PGSIZE, DISK_SECTOR_SIZE)
+#define SECTORS_PER_PAGE DIV_ROUND_UP(PGSIZE, DISK_SECTOR_SIZE)
 
 /* DO NOT MODIFY BELOW LINE */
 static struct disk *swap_disk;
