@@ -403,13 +403,13 @@ unsigned _tell (int fd) {
 }
 
 void * _mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
-	// printf("[_mmap] %p, %ld, %d, %d, %d\n", addr, length, writable, fd, offset);
+	// printf("[_mmap] %p, %d, %ld, %d, %d, %d\n", addr, is_user_vaddr(addr), length, writable, fd, offset);
 	/* 입력값 유효성 체크 */
 	if (addr == NULL
-		|| !is_user_vaddr(NULL)
+		|| !is_user_vaddr(addr)
 		|| (uintptr_t) addr % PGSIZE != 0    // addr이 page-aligned 되어야 함
 		// || (uintptr_t) offset % PGSIZE != 0
-		|| length <= 0)
+		|| (int)length <= 0) // temp: length가 음수가 되는 상황 때문에 unordered에서 int로 처리
 		goto error;
 	if (fd == 0 || fd == 1)
 		goto error;
@@ -430,6 +430,7 @@ void * _mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 	return do_mmap(addr, length, writable, file, offset);
 
 error:
+	// printf("[_mmap] fail\n");
 	return NULL;
 }
 

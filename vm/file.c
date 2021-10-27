@@ -64,8 +64,6 @@ file_backed_destroy (struct page *page) {
 		file_write(file_page->file, page->va, file_page->size);
 	}
 	file_close(file_page->file);
-
-
 }
 
 /* lazy_load_file */
