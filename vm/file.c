@@ -159,6 +159,7 @@ do_munmap (void *addr) {
 			// page가 없어진 상황은 에러인가? 아니면 넘어가도 되는가?
 			if (page)
 				spt_remove_page(&thread_current()->spt, page);
+			addr = addr + PGSIZE;
 		}
 		// 할당되었던 info 영역 free
 		free(info);
