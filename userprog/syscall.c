@@ -408,7 +408,7 @@ void * _mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 	if (addr == NULL
 		|| !is_user_vaddr(addr)
 		|| (uintptr_t) addr % PGSIZE != 0    // addr이 page-aligned 되어야 함
-		// || (uintptr_t) offset % PGSIZE != 0
+		|| (uintptr_t) offset % PGSIZE != 0  // 왜 offset이 PGSIZE가 되어야 하지?
 		|| (int)length <= 0) // temp: length가 음수가 되는 상황 때문에 unordered에서 int로 처리
 		goto error;
 	if (fd == 0 || fd == 1)
