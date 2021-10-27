@@ -75,6 +75,34 @@ anon_swap_in (struct page *page, void *kva) {
 static bool
 anon_swap_out (struct page *page) {
 	struct anon_page *anon_page = &page->anon;
+	// page 유효성 체크
+	if (page == NULL
+		|| page->frame == NULL
+		|| page->frame->kva == NULL)
+		return false;
+	// swap table에서 page 1개 들어갈 위치 확보 
+	// - swap table의 해당 slot의 bit들은 false로 초기화
+	size_t swap_idx = bitmap_scan_and_flip (swap_table, 0, 1, false);
+	// swap table이 가득 찬 경우 에러 처리
+	if (swap_idx == BITMAP_ERROR)
+		return false;
+	// page에 있는 내용을 disk에 옮겨 적기
+	// - page를 옮겨 적기 위해서는 SECTORS_PER_PAGE 개수의 sector가 필요함
+	// - 한 sector의 크기는 DISK_SECTOR_SIZE bytes임
+	disk_sector_t sec_no;
+	off_t offset;
+	for (int i=0; i < SECTORS_PER_PAGE; i++) {
+		sec_no = swap_idx * SECTORS_PER_PAGE + i;
+		offset = page->frame->kva + DISK_SECTOR_SIZE * i;
+		disk_write(swap_disk, sec_no, offset);
+	}
+	// swap table의 해당 위치에 page가 추가되었음을 표시
+	bitmap_set(swap_table, swap_idx, true);
+	// 나중에 swap in을 하기 위해 anon_page에 swap_idx 를 저장
+	anon_page->swap_idx = swap_idx;
+	// pml4에서 빠졌음을 표시
+	// pml4_clear_page(thread_current()->pml4, page->va);
+	pml4_clear_page(page->frame->thread->pml4, page->va);
 }
 
 /* Destroy the anonymous page. PAGE will be freed by the caller. */
