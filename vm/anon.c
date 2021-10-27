@@ -69,11 +69,14 @@ anon_initializer (struct page *page, enum vm_type type, void *kva) {
 static bool
 anon_swap_in (struct page *page, void *kva) {
 	struct anon_page *anon_page = &page->anon;
+
+
 }
 
 /* Swap out the page by writing contents to the swap disk. */
 static bool
 anon_swap_out (struct page *page) {
+	// printf("[anon_swap_out] start %p, %p\n", page->va, page->frame->kva);
 	struct anon_page *anon_page = &page->anon;
 	// page 유효성 체크
 	if (page == NULL
@@ -90,7 +93,7 @@ anon_swap_out (struct page *page) {
 	// - page를 옮겨 적기 위해서는 SECTORS_PER_PAGE 개수의 sector가 필요함
 	// - 한 sector의 크기는 DISK_SECTOR_SIZE bytes임
 	disk_sector_t sec_no;
-	off_t offset;
+	uintptr_t offset; // 주의! 자료형에 따라 값이 제대로 안 잡힐 수 있음
 	for (int i=0; i < SECTORS_PER_PAGE; i++) {
 		sec_no = swap_idx * SECTORS_PER_PAGE + i;
 		offset = page->frame->kva + DISK_SECTOR_SIZE * i;
@@ -103,6 +106,8 @@ anon_swap_out (struct page *page) {
 	// pml4에서 빠졌음을 표시
 	// pml4_clear_page(thread_current()->pml4, page->va);
 	pml4_clear_page(page->frame->thread->pml4, page->va);
+	// printf("[anon_swap_out] done %p\n", page->va);
+	return true;
 }
 
 /* Destroy the anonymous page. PAGE will be freed by the caller. */

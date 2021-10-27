@@ -141,7 +141,7 @@ spt_remove_page (struct supplemental_page_table *spt, struct page *page) {
 /* Get the struct frame, that will be evicted. */
 static struct frame *
 vm_get_victim (void) {
-	printf("[vm_get_victim] start\n");
+	// printf("[vm_get_victim] start\n");
 	/* TODO: The policy for eviction is up to you. */
 	// struct thread *curr = thread_current();
 	struct frame *victim;
@@ -181,7 +181,7 @@ vm_get_victim (void) {
 		}
 	}
 	lock_release(&clock_lock);
-	printf("[vm_get_victim] end %p\n", victim);
+	// printf("[vm_get_victim] end %p\n", victim);
 	return victim;
 }
 
