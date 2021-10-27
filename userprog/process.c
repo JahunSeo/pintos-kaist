@@ -714,13 +714,6 @@ lazy_load_segment (struct page *page, void *aux) {
 		return false;		
 	}
 	memset (page->frame->kva + page_read_bytes, 0, page_zero_bytes);
-	// page type이 VM_FILE 인 경우
-	if (info->type == VM_FILE) {
-		printf("[lazy_load_segment] type %d\n", info->type);
-		// page table에 해당 page의 dirty bit를 false로 초기화
-		pml4_set_dirty(&thread_current()->pml4, page->va, false);
-	}
-
 	// aux의 역할이 끝났으므로 할당되었던 메모리 free
 	free(info);
 	return true;

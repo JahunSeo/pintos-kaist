@@ -423,7 +423,7 @@ void * _mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 	}
 	/* file descriptor table에서 file 가져오기 */
 	struct file* file;
-	if (file = process_get_file(fd) == NULL)
+	if ((file = process_get_file(fd)) == NULL)
 		goto error;
 
 	/* mmap 실행 */
