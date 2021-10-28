@@ -425,7 +425,6 @@ supplemental_page_table_copy (struct supplemental_page_table *dst,
 			if (!vm_alloc_page_with_initializer (p_page->uninit.type, p_page->va,
 						p_page->writable, p_init, c_aux))
 				return false;
-
 		} 
 		// 나머지 경우: page table(pml4)와 물리메모리에 올라간 상태의 페이지들
 		else if (VM_TYPE(p_type) == VM_ANON) {

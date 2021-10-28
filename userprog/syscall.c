@@ -142,10 +142,10 @@ syscall_handler (struct intr_frame *f) {
 */
 void check_address(const char *uaddr) {
 	struct thread *curr = thread_current();
-	// printf("  [check_address] %p, %d, %p\n", uaddr, is_user_vaddr(uaddr), pml4_get_page(curr->pml4, uaddr));
+	// printf("  [check_address] %p, %d, %p\n", uaddr, is_user_vaddr(uaddr), spt_find_page(&thread_current()->spt, uaddr));
 	if (uaddr == NULL 
 		|| !is_user_vaddr(uaddr) 
-		|| pml4_get_page(curr->pml4, uaddr) == NULL) {
+		|| spt_find_page(&thread_current()->spt, uaddr) == NULL) {
 			_exit(-1);
 		}
 }
