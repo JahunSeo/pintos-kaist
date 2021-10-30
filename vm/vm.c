@@ -417,7 +417,11 @@ supplemental_page_table_copy (struct supplemental_page_table *dst,
 			struct load_info *p_aux = p_page->uninit.aux;
 			// child_page에 전달할 새로운 aux를 구성
 			struct load_info *c_aux = malloc(sizeof(struct load_info));
-			c_aux->file = p_aux->file;
+			if (p_page->uninit.type == VM_FILE) {
+				c_aux->file = file_duplicate(p_aux->file);
+			} else {
+				c_aux->file = p_aux->file;
+			}
 			c_aux->ofs = p_aux->ofs;
 			c_aux->page_read_bytes = p_aux->page_read_bytes;
 			c_aux->page_zero_bytes = p_aux->page_zero_bytes;
