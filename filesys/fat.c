@@ -5,6 +5,8 @@
 #include "threads/synch.h"
 #include <stdio.h>
 #include <string.h>
+// ADD
+#include <round.h>
 
 /* Should be less than DISK_SECTOR_SIZE */
 struct fat_boot {
@@ -170,13 +172,13 @@ fat_fs_init (void) {
 		fat_fs->bs.total_sectors, fat_fs->bs.fat_start,
 		fat_fs->bs.fat_sectors, fat_fs->bs.root_dir_cluster);
 	// user data를 담을 수 있는 sector의 개수
-	unsigned int data_sectors = fat_fs->total_sectors  // disk의 전체 sector 개수
+	unsigned int data_sectors = fat_fs->bs.total_sectors  // disk의 전체 sector 개수
 								- 1   				   // boot sector (super block)
-								- fat_fs->fat_sectors; // fat가 차지하는 sector 개수
+								- fat_fs->bs.fat_sectors; // fat가 차지하는 sector 개수
 	// fat에 담을 수 있는 cluster의 개수
-	fat_fs->fat_length = DIV_ROUND_DOWN(data_sectors, fat_fs->bs.sectors_per_cluster);
+	fat_fs->fat_length = data_sectors / fat_fs->bs.sectors_per_cluster;
 	// 
-	fat_fs->data_start = fat_fs->fat_start + fat_fs->fat_sectors;
+	fat_fs->data_start = fat_fs->bs.fat_start + fat_fs->bs.fat_sectors;
 }
 
 /*----------------------------------------------------------------------------*/
