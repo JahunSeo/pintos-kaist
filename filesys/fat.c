@@ -10,7 +10,7 @@
 struct fat_boot {
 	unsigned int magic;
 	unsigned int sectors_per_cluster; /* Fixed to 1 */
-	unsigned int total_sectors;
+	unsigned int total_sectors; /* disk size 를 의미 */
 	unsigned int fat_start;
 	unsigned int fat_sectors; /* Size of FAT in sectors. */
 	unsigned int root_dir_cluster;
@@ -137,9 +137,21 @@ fat_create (void) {
 
 void
 fat_boot_create (void) {
+	// fat_sectors: fat을 유지하기 위해 필요한 sector의 개수 
+	//  - disk에 있는 sector 개수를 하나의 sector에 담을 수 있는 cluster 주소값의 개수로 나누어 계산
+	//  - 이 때, +1, -1은 왜 들어갈까?
+	//  - 이 때, disk_size에서 fat_sectors 만큼 빠지는 부분도 있긴 할텐데.. 
 	unsigned int fat_sectors =
 	    (disk_size (filesys_disk) - 1)
 	    / (DISK_SECTOR_SIZE / sizeof (cluster_t) * SECTORS_PER_CLUSTER + 1) + 1;
+
+	printf("[fat_boot_create] %ld, %ld, %ld, %ld, %ld\n", 
+		disk_size (filesys_disk) - 1,
+		DISK_SECTOR_SIZE,
+		sizeof (cluster_t),
+		SECTORS_PER_CLUSTER,
+		fat_sectors);
+
 	fat_fs->bs = (struct fat_boot){
 	    .magic = FAT_MAGIC,
 	    .sectors_per_cluster = SECTORS_PER_CLUSTER,
@@ -153,6 +165,18 @@ fat_boot_create (void) {
 void
 fat_fs_init (void) {
 	/* TODO: Your code goes here. */
+	printf("[fat_fs_init] %ld, %ld, %ld, %ld, %ld, %ld\n", 
+		fat_fs->bs.magic, fat_fs->bs.sectors_per_cluster,
+		fat_fs->bs.total_sectors, fat_fs->bs.fat_start,
+		fat_fs->bs.fat_sectors, fat_fs->bs.root_dir_cluster);
+	// user data를 담을 수 있는 sector의 개수
+	unsigned int data_sectors = fat_fs->total_sectors  // disk의 전체 sector 개수
+								- 1   				   // boot sector (super block)
+								- fat_fs->fat_sectors; // fat가 차지하는 sector 개수
+	// fat에 담을 수 있는 cluster의 개수
+	fat_fs->fat_length = DIV_ROUND_DOWN(data_sectors, fat_fs->bs.sectors_per_cluster);
+	// 
+	fat_fs->data_start = fat_fs->fat_start + fat_fs->fat_sectors;
 }
 
 /*----------------------------------------------------------------------------*/
