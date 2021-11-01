@@ -177,7 +177,7 @@ fat_fs_init (void) {
 								- fat_fs->bs.fat_sectors; // fat가 차지하는 sector 개수
 	// fat에 담을 수 있는 cluster의 개수
 	fat_fs->fat_length = data_sectors / fat_fs->bs.sectors_per_cluster;
-	// 
+	// 저장 가능한 공간이 시작되는 지점
 	fat_fs->data_start = fat_fs->bs.fat_start + fat_fs->bs.fat_sectors;
 }
 
@@ -204,16 +204,21 @@ fat_remove_chain (cluster_t clst, cluster_t pclst) {
 void
 fat_put (cluster_t clst, cluster_t val) {
 	/* TODO: Your code goes here. */
+	fat_fs->fat[clst] = val;
 }
 
 /* Fetch a value in the FAT table. */
 cluster_t
 fat_get (cluster_t clst) {
 	/* TODO: Your code goes here. */
+	return fat_fs->fat[clst];	// *(fat_fs->fat + clst)
 }
 
 /* Covert a cluster # to a sector number. */
 disk_sector_t
 cluster_to_sector (cluster_t clst) {
 	/* TODO: Your code goes here. */
+	// ROOT_DIR_CLUSTER가 1부터 시작함
+	// - 일단 1을 빼주는 방향으로 결정
+	return fat_fs->data_start + (clst - 1) * fat_fs->bs.sectors_per_cluster;
 }
