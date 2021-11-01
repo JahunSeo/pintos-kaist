@@ -147,12 +147,12 @@ fat_boot_create (void) {
 	    (disk_size (filesys_disk) - 1)
 	    / (DISK_SECTOR_SIZE / sizeof (cluster_t) * SECTORS_PER_CLUSTER + 1) + 1;
 
-	printf("[fat_boot_create] %ld, %ld, %ld, %ld, %ld\n", 
-		disk_size (filesys_disk) - 1,
-		DISK_SECTOR_SIZE,
-		sizeof (cluster_t),
-		SECTORS_PER_CLUSTER,
-		fat_sectors);
+	// printf("[fat_boot_create] %ld, %ld, %ld, %ld, %ld\n", 
+	// 	disk_size (filesys_disk) - 1,
+	// 	DISK_SECTOR_SIZE,
+	// 	sizeof (cluster_t),
+	// 	SECTORS_PER_CLUSTER,
+	// 	fat_sectors);
 
 	fat_fs->bs = (struct fat_boot){
 	    .magic = FAT_MAGIC,
@@ -167,10 +167,10 @@ fat_boot_create (void) {
 void
 fat_fs_init (void) {
 	/* TODO: Your code goes here. */
-	printf("[fat_fs_init] %ld, %ld, %ld, %ld, %ld, %ld\n", 
-		fat_fs->bs.magic, fat_fs->bs.sectors_per_cluster,
-		fat_fs->bs.total_sectors, fat_fs->bs.fat_start,
-		fat_fs->bs.fat_sectors, fat_fs->bs.root_dir_cluster);
+	// printf("[fat_fs_init] %ld, %ld, %ld, %ld, %ld, %ld\n", 
+	// 	fat_fs->bs.magic, fat_fs->bs.sectors_per_cluster,
+	// 	fat_fs->bs.total_sectors, fat_fs->bs.fat_start,
+	// 	fat_fs->bs.fat_sectors, fat_fs->bs.root_dir_cluster);
 	// user data를 담을 수 있는 sector의 개수
 	unsigned int data_sectors = fat_fs->bs.total_sectors  // disk의 전체 sector 개수
 								- 1   				   // boot sector (super block)
@@ -190,7 +190,27 @@ fat_fs_init (void) {
  * Returns 0 if fails to allocate a new cluster. */
 cluster_t
 fat_create_chain (cluster_t clst) {
+	// printf("[fat_create_chain] %ld\n", clst);
 	/* TODO: Your code goes here. */
+	// 비어 있는 cluster 찾기
+	cluster_t next_clst = 2;
+	while (fat_get(next_clst) != 0 && next_clst < fat_fs->fat_length) {
+		next_clst++;
+	}
+	// 비어 있는 cluster를 찾지 못한 경우
+	if (next_clst == fat_fs->fat_length) {
+		return 0;
+	}
+	// 기존의 chain에 추가되는 경우 처리
+	if (clst != 0) {
+		// 이 때, clst가 EOChain이라는 전제가 필요
+		ASSERT(fat_get(clst) == EOChain);
+		fat_put(clst, next_clst);
+	}
+	// next_clst에 추가
+	fat_put(next_clst, EOChain);
+	
+	return next_clst;
 }
 
 /* Remove the chain of clusters starting from CLST.
