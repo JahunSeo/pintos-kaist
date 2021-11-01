@@ -218,6 +218,17 @@ fat_create_chain (cluster_t clst) {
 void
 fat_remove_chain (cluster_t clst, cluster_t pclst) {
 	/* TODO: Your code goes here. */
+	// clst부터 이어지는 clst들을 비움
+	cluster_t next_clst;
+	while((next_clst = fat_get(clst)) != EOChain) {
+		fat_put(clst, 0);
+		clst = next_clst;
+	}
+	// pclst의 값을 EOChain으로 설정
+	// - pclst가 0인 경우, chain이 모두 사라진 것이므로 처리해줄 필요 없음
+	if (pclst != 0) {
+		fat_put(pclst, EOChain);
+	}
 }
 
 /* Update a value in the FAT table. */
