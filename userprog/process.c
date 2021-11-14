@@ -710,10 +710,10 @@ lazy_load_segment (struct page *page, void *aux) {
 	// file_read로 file을 읽어 물리메모리에 저장
 	file_seek (file, ofs);
 	if (file_read (file, page->frame->kva, page_read_bytes) != (int) page_read_bytes) {
-		vm_dealloc_page(page); // destroy and free page
+		spt_remove_page(&thread_current()->spt, page); // destroy and free page
 		return false;		
 	}
-	memset (page->frame->kva + page_read_bytes, 0, page_zero_bytes);	
+	memset (page->frame->kva + page_read_bytes, 0, page_zero_bytes);
 	// aux의 역할이 끝났으므로 할당되었던 메모리 free
 	free(info);
 	return true;
@@ -755,6 +755,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		aux->ofs = ofs;
 		aux->page_read_bytes = page_read_bytes;
 		aux->page_zero_bytes = page_zero_bytes;
+		aux->type = VM_ANON;
 
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
 					writable, lazy_load_segment, aux))

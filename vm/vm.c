@@ -8,9 +8,13 @@
 #include <hash.h>
 #include <list.h>
 #include "threads/mmu.h"
+#include "threads/synch.h"
 
 /* frame_table */
 static struct list frame_table;
+/* evict victim 로직(clock algorithm) 관련 */
+static struct lock clock_lock; // race 방지를 위한 lock
+static struct list_elem *clock_elem; // 마지막 탐색 위치부터 이어서하기 위해 보관
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -27,6 +31,9 @@ vm_init (void) {
 	// frame_table 초기화
 	// - 정적 변수로 정의된 상태 (만약 malloc으로 할당한다면 여기서 처리)
 	list_init(&frame_table); 
+	// clock lock 초기화
+	lock_init(&clock_lock);
+	clock_elem = NULL;
 }
 
 /* Get the type of the page. This function is useful if you want to know the
@@ -127,6 +134,8 @@ spt_insert_page (struct supplemental_page_table *spt, struct page *page) {
 
 void
 spt_remove_page (struct supplemental_page_table *spt, struct page *page) {
+	struct hash_elem *e;
+	e = hash_delete(&spt->page_table, &page->h_elem);
 	vm_dealloc_page (page);
 	return true;
 }
@@ -134,9 +143,45 @@ spt_remove_page (struct supplemental_page_table *spt, struct page *page) {
 /* Get the struct frame, that will be evicted. */
 static struct frame *
 vm_get_victim (void) {
-	struct frame *victim = NULL;
-	 /* TODO: The policy for eviction is up to you. */
-
+	// printf("[vm_get_victim] start\n");
+	/* TODO: The policy for eviction is up to you. */
+	struct thread *curr = thread_current();
+	struct frame *victim;
+	// thread 간 race problem을 방지하기 위해 lock으로 접근을 통제
+	lock_acquire(&clock_lock);
+	// 마지막 탐색 위치부터 탐색 시작
+	struct list_elem *e = clock_elem;
+	// frame_table을 하나씩 돌며 access되지 않은 frame 찾기
+	// - current thread에서 accessed 여부를 체크
+	// - 즉 현재 로직에서는 current thread가 아닌 다른 thread의 page는 바로 victim으로 처리됨
+	// - 만약 다른 프로세스도 포함시키고 싶다면 frame 구조체에 thread member를 추가해주면 될 듯
+	// - [실험] frame에서 thread를 관리하는 방향으로 시도!!
+	bool found = false;
+	while (!found) {
+		if (e == NULL || e == list_end(&frame_table))
+			e = list_begin(&frame_table);
+		// 한 바퀴 돌면서 victim을 못 찾지 못한 경우(즉 모두 accessed 였던 경우) 반복해 순회 
+		//  - 최대 for loop 이 3번 시작됨
+		for (clock_elem = e; 
+		clock_elem != list_end(&frame_table); 
+		clock_elem = list_next(clock_elem)) {
+			victim = list_entry (clock_elem, struct frame, elem);
+			if (pml4_is_accessed(curr->pml4, victim->page->va))	{
+				pml4_set_accessed(curr->pml4, victim->page->va, 0);
+			// if (pml4_is_accessed(victim->thread->pml4, victim->page->va)) {
+			// 	pml4_set_accessed(victim->thread->pml4, victim->page->va, 0);
+			} else {
+				// 현재 victim으로 탐색 종료
+				found = true;
+				break;
+			}
+		}
+	}
+	// 다음 elem로 옮겨 둚
+	clock_elem = list_next(clock_elem);
+	// 
+	lock_release(&clock_lock);
+	// printf("[vm_get_victim] end %p\n", victim);
 	return victim;
 }
 
@@ -144,10 +189,22 @@ vm_get_victim (void) {
  * Return NULL on error.*/
 static struct frame *
 vm_evict_frame (void) {
-	struct frame *victim UNUSED = vm_get_victim ();
+	struct frame *victim = vm_get_victim ();
 	/* TODO: swap out the victim and return the evicted frame. */
+	if (victim == NULL)
+		return NULL;
+	// swap out 처리: page type에 맞게 처리됨
+	if (!swap_out(victim->page))
+		PANIC("fail to swap out.. maybe swap disk is full.");
 
-	return NULL;
+	// frame 비워주기
+	// - 주의! frame을 비워주지 않는다면 서로 다른 process 간에 침범이 발생할 수 있음
+	// - 가령, swap out된 process B의 page를 process A가 볼 수도 있음
+	victim->page = NULL;
+	victim->thread = NULL;
+	memset(victim->kva, 0, PGSIZE);
+
+	return victim;
 }
 
 /* palloc() and get frame. If there is no available page, evict the page
@@ -164,10 +221,9 @@ vm_get_frame (void) {
 	// page 할당에 실패한 경우 (이미 가득찬 경우)
 	if (phys_page == NULL) {
 		// 임시로 PANIC 처리
-		PANIC("TODO: vm_evict_frame");
+		// PANIC("TODO: vm_evict_frame");
 		// TODO: 기존의 frame 중 victim을 정해 swap out 처리 후 재활용 
 		frame = vm_evict_frame();
-		frame->page = NULL;
 	} 
 	// page 할당에 성공한 경우
 	else {
@@ -175,6 +231,7 @@ vm_get_frame (void) {
 		frame = (struct frame *)malloc(sizeof(struct frame));
 		frame->kva = phys_page;
 		frame->page = NULL; // 여기의 page는 phys_page에 들어갈 가상 주소 공간의 page
+		frame->thread = NULL; // 실험적 코드
 		// 새로 생성한 frame을 frame_table에 추가
 		// - 일단 push_back으로 처리하되, 추후 victim 정하는 정책에 맞게 수정
 		list_push_back(&frame_table, &frame->elem);
@@ -182,6 +239,7 @@ vm_get_frame (void) {
 	
 	ASSERT (frame != NULL);
 	ASSERT (frame->page == NULL);
+
 	return frame;
 }
 
@@ -312,9 +370,13 @@ vm_do_claim_page (struct page *page) {
 	struct thread *t = thread_current();
 	if (pml4_get_page (t->pml4, page->va) == NULL
 		&& pml4_set_page (t->pml4, page->va, frame->kva, page->writable)) {
+		// 실험적 코드
+		frame->thread = thread_current();
+		// printf("[vm_do_claim_page] before swap_in %p %p\n", page->va, frame->kva);
 		return swap_in (page, frame->kva);
 	}
 	// page table에 추가 실패 시 처리
+	// printf("[vm_do_claim_page] fail swap_in\n");
 	return false;	
 }
 
@@ -355,7 +417,11 @@ supplemental_page_table_copy (struct supplemental_page_table *dst,
 			struct load_info *p_aux = p_page->uninit.aux;
 			// child_page에 전달할 새로운 aux를 구성
 			struct load_info *c_aux = malloc(sizeof(struct load_info));
-			c_aux->file = p_aux->file;
+			if (p_page->uninit.type == VM_FILE) {
+				c_aux->file = file_duplicate(p_aux->file);
+			} else {
+				c_aux->file = p_aux->file;
+			}
 			c_aux->ofs = p_aux->ofs;
 			c_aux->page_read_bytes = p_aux->page_read_bytes;
 			c_aux->page_zero_bytes = p_aux->page_zero_bytes;
@@ -363,7 +429,6 @@ supplemental_page_table_copy (struct supplemental_page_table *dst,
 			if (!vm_alloc_page_with_initializer (p_page->uninit.type, p_page->va,
 						p_page->writable, p_init, c_aux))
 				return false;
-
 		} 
 		// 나머지 경우: page table(pml4)와 물리메모리에 올라간 상태의 페이지들
 		else if (VM_TYPE(p_type) == VM_ANON) {

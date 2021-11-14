@@ -15,6 +15,7 @@
 #include "devices/input.h"
 #include <string.h>
 #include "filesys/file.h"
+#include "vm/file.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -116,6 +117,15 @@ syscall_handler (struct intr_frame *f) {
 		case SYS_CLOSE:                  /* Close a file. */
 			_close(f->R.rdi);
 			break;
+
+		case SYS_MMAP:					 /*  */
+			f->R.rax = _mmap((char *) f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
+			break;
+
+		case SYS_MUNMAP:				 /*  */
+			_munmap((char *) f->R.rdi);
+			break;
+
 		default:
 			printf("  DEFAULT do nothing..\n");
 			_exit(TID_ERROR);
@@ -132,9 +142,10 @@ syscall_handler (struct intr_frame *f) {
 */
 void check_address(const char *uaddr) {
 	struct thread *curr = thread_current();
+	// printf("  [check_address] %p, %d, %p\n", uaddr, is_user_vaddr(uaddr), spt_find_page(&thread_current()->spt, uaddr));
 	if (uaddr == NULL 
 		|| !is_user_vaddr(uaddr) 
-		|| pml4_get_page(curr->pml4, uaddr) == NULL) {
+		|| spt_find_page(&thread_current()->spt, uaddr) == NULL) {
 			_exit(-1);
 		}
 }
@@ -221,12 +232,14 @@ void _exit (int status) {
 }
 
 tid_t _fork (const char* thread_name, struct intr_frame *if_) {
+	// printf("[_fork] thread_name %s, %p\n", thread_name, thread_name);
 	check_address(thread_name);
 	return process_fork(thread_name, if_);
 }
 
 int _exec (const char *file_name) {
 	/* 잘못된 주소값인지 확인 */
+	// printf("[_exec] file_name %s, %p\n", file_name, file_name);
 	check_address(file_name);
 
 	/* Make a copy of FILE_NAME.
@@ -267,12 +280,12 @@ bool _remove (const char *file_name) {
 }
 
 int _open (const char *file_name) {
+	// printf("[_open] file_name %s, %p\n", file_name, file_name);
 	check_address(file_name);
 	struct file* file;
 	lock_acquire(&filesys_lock);
 	file = filesys_open(file_name);
 	lock_release(&filesys_lock);
-
 
 	if (file == NULL) {
 		return TID_ERROR;
@@ -289,6 +302,7 @@ int _open (const char *file_name) {
 
 int _read (int fd, void *buffer, unsigned size) {
 	/* buffer로 들어온 주소값이 유효한지 확인 */
+	// printf("[_read] buffer %p\n", buffer);
 	check_address(buffer);
 	/* 현재 thread의 FDT에서 fd 값이 유효한지 확인 */
 	struct file *file = process_get_file(fd);
@@ -333,6 +347,7 @@ int _filesize (int fd) {
 
 int _write (int fd, const void *buffer, unsigned size) {
 	/* buffer로 들어온 주소값이 유효한지 확인 */
+	// printf("[_write] buffer %p\n", buffer);
 	check_address(buffer);
 	/* 현재 thread의 FDT에서 fd 값이 유효한지 확인 */
 	struct file *file = process_get_file(fd);
@@ -385,4 +400,40 @@ unsigned _tell (int fd) {
 	position = file_tell(file);
 	lock_release(&filesys_lock);
 	return position;
+}
+
+void * _mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
+	// printf("[_mmap] %p, %d, %ld, %d, %d, %d\n", addr, is_user_vaddr(addr), length, writable, fd, offset);
+	/* 입력값 유효성 체크 */
+	if (addr == NULL
+		|| !is_user_vaddr(addr)
+		|| (uintptr_t) addr % PGSIZE != 0    // addr이 page-aligned 되어야 함
+		|| (uintptr_t) offset % PGSIZE != 0  // 왜 offset이 PGSIZE가 되어야 하지?
+		|| (int)length <= 0) // temp: length가 음수가 되는 상황 때문에 unordered에서 int로 처리
+		goto error;
+	if (fd == 0 || fd == 1)
+		goto error;
+	/* 가상주소 공간에서 기존의 페이지들과 겹치지 않는지 확인 
+		- addr와 addr+length 사이에 있는 페이지들이 기존에 spt에 등록된 페이지와 겹치지 않는지 확인
+	*/
+	for (uintptr_t tmp_addr = addr; tmp_addr < addr + length; tmp_addr += PGSIZE) {
+		// 이미 해당 가상주소 영역이 다른 목적으로 사용되고 있다면 종료
+		if (spt_find_page(&thread_current()->spt, tmp_addr) != NULL) 
+			goto error;
+	}
+	/* file descriptor table에서 file 가져오기 */
+	struct file* file;
+	if ((file = process_get_file(fd)) == NULL)
+		goto error;
+
+	/* mmap 실행 */
+	return do_mmap(addr, length, writable, file, offset);
+
+error:
+	// printf("[_mmap] fail\n");
+	return NULL;
+}
+
+void _munmap (void *addr) {
+	do_munmap(addr);
 }

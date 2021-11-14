@@ -70,6 +70,7 @@ struct frame {
 	struct page *page;
 	/* frame table 관련: data structure를 list 로 결정 */
 	struct list_elem elem;
+	struct thread *thread;
 };
 
 /* The function table for page operations.
@@ -129,6 +130,7 @@ struct load_info {
 	off_t ofs;
 	size_t page_read_bytes;
 	size_t page_zero_bytes;
+	enum vm_type type;
 };
 
 #endif  /* VM_VM_H */

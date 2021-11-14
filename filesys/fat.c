@@ -5,12 +5,14 @@
 #include "threads/synch.h"
 #include <stdio.h>
 #include <string.h>
+// ADD
+#include <round.h>
 
 /* Should be less than DISK_SECTOR_SIZE */
 struct fat_boot {
 	unsigned int magic;
 	unsigned int sectors_per_cluster; /* Fixed to 1 */
-	unsigned int total_sectors;
+	unsigned int total_sectors; /* disk size 를 의미 */
 	unsigned int fat_start;
 	unsigned int fat_sectors; /* Size of FAT in sectors. */
 	unsigned int root_dir_cluster;
@@ -137,9 +139,21 @@ fat_create (void) {
 
 void
 fat_boot_create (void) {
+	// fat_sectors: fat을 유지하기 위해 필요한 sector의 개수 
+	//  - disk에 있는 sector 개수를 하나의 sector에 담을 수 있는 cluster 주소값의 개수로 나누어 계산
+	//  - 이 때, +1, -1은 왜 들어갈까?
+	//  - 이 때, disk_size에서 fat_sectors 만큼 빠지는 부분도 있긴 할텐데.. 
 	unsigned int fat_sectors =
 	    (disk_size (filesys_disk) - 1)
 	    / (DISK_SECTOR_SIZE / sizeof (cluster_t) * SECTORS_PER_CLUSTER + 1) + 1;
+
+	// printf("[fat_boot_create] %ld, %ld, %ld, %ld, %ld\n", 
+	// 	disk_size (filesys_disk) - 1,
+	// 	DISK_SECTOR_SIZE,
+	// 	sizeof (cluster_t),
+	// 	SECTORS_PER_CLUSTER,
+	// 	fat_sectors);
+
 	fat_fs->bs = (struct fat_boot){
 	    .magic = FAT_MAGIC,
 	    .sectors_per_cluster = SECTORS_PER_CLUSTER,
@@ -153,6 +167,18 @@ fat_boot_create (void) {
 void
 fat_fs_init (void) {
 	/* TODO: Your code goes here. */
+	// printf("[fat_fs_init] %ld, %ld, %ld, %ld, %ld, %ld\n", 
+	// 	fat_fs->bs.magic, fat_fs->bs.sectors_per_cluster,
+	// 	fat_fs->bs.total_sectors, fat_fs->bs.fat_start,
+	// 	fat_fs->bs.fat_sectors, fat_fs->bs.root_dir_cluster);
+	// user data를 담을 수 있는 sector의 개수
+	unsigned int data_sectors = fat_fs->bs.total_sectors  // disk의 전체 sector 개수
+								- 1   				   // boot sector (super block)
+								- fat_fs->bs.fat_sectors; // fat가 차지하는 sector 개수
+	// fat에 담을 수 있는 cluster의 개수
+	fat_fs->fat_length = data_sectors / fat_fs->bs.sectors_per_cluster;
+	// 저장 가능한 공간이 시작되는 지점
+	fat_fs->data_start = fat_fs->bs.fat_start + fat_fs->bs.fat_sectors;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -164,7 +190,27 @@ fat_fs_init (void) {
  * Returns 0 if fails to allocate a new cluster. */
 cluster_t
 fat_create_chain (cluster_t clst) {
+	// printf("[fat_create_chain] %ld\n", clst);
 	/* TODO: Your code goes here. */
+	// 비어 있는 cluster 찾기
+	cluster_t next_clst = 2;
+	while (fat_get(next_clst) != 0 && next_clst < fat_fs->fat_length) {
+		next_clst++;
+	}
+	// 비어 있는 cluster를 찾지 못한 경우
+	if (next_clst == fat_fs->fat_length) {
+		return 0;
+	}
+	// 기존의 chain에 추가되는 경우 처리
+	if (clst != 0) {
+		// 이 때, clst가 EOChain이라는 전제가 필요
+		ASSERT(fat_get(clst) == EOChain);
+		fat_put(clst, next_clst);
+	}
+	// next_clst에 추가
+	fat_put(next_clst, EOChain);
+	
+	return next_clst;
 }
 
 /* Remove the chain of clusters starting from CLST.
@@ -172,22 +218,38 @@ fat_create_chain (cluster_t clst) {
 void
 fat_remove_chain (cluster_t clst, cluster_t pclst) {
 	/* TODO: Your code goes here. */
+	// clst부터 이어지는 clst들을 비움
+	cluster_t next_clst;
+	while((next_clst = fat_get(clst)) != EOChain) {
+		fat_put(clst, 0);
+		clst = next_clst;
+	}
+	// pclst의 값을 EOChain으로 설정
+	// - pclst가 0인 경우, chain이 모두 사라진 것이므로 처리해줄 필요 없음
+	if (pclst != 0) {
+		fat_put(pclst, EOChain);
+	}
 }
 
 /* Update a value in the FAT table. */
 void
 fat_put (cluster_t clst, cluster_t val) {
 	/* TODO: Your code goes here. */
+	fat_fs->fat[clst] = val;
 }
 
 /* Fetch a value in the FAT table. */
 cluster_t
 fat_get (cluster_t clst) {
 	/* TODO: Your code goes here. */
+	return fat_fs->fat[clst];	// *(fat_fs->fat + clst)
 }
 
 /* Covert a cluster # to a sector number. */
 disk_sector_t
 cluster_to_sector (cluster_t clst) {
 	/* TODO: Your code goes here. */
+	// ROOT_DIR_CLUSTER가 1부터 시작함
+	// - 일단 1을 빼주는 방향으로 결정
+	return fat_fs->data_start + (clst - 1) * fat_fs->bs.sectors_per_cluster;
 }
